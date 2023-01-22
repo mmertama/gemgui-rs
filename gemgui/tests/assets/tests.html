@@ -1,0 +1,61 @@
+<!doctype html>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<meta charset="UTF-8">
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <style>
+            #some_tests_header {
+                color:red;
+                font-size:32px
+            }
+            </style>
+        <title>Tests</title>
+    </head>
+    <body>
+        <h2 id="some_tests_header" name="some_name">Some Tests</h2>
+        <script type="text/javascript" src="gemgui.js"></script>
+        <button id="startbutton">Calc!</button>
+        <div id="content" class="some_class">
+            Lorem ipsum, vino veritas
+        </div>
+        <div id="another_content" class="some_class">
+            <p id="paramount">Fellow</p>
+            Yellow
+            <p>Follow</p>
+        </div>
+        <div>
+            <canvas id="canvas" width="500" height="500"></canvas>
+        </div>
+        <img id="hidden_image" src="widgets.jpeg" alt="hidden for canvas" hidden/>    
+        <script>
+            function add_mut_observer(observed, event_name) {
+            const targetNode = document.getElementById(observed);
+            console.assert(targetNode, observed + " not found");
+            // Options for the observer (which mutations to observe)
+            const config = {attributes: true};
+            const callback = function(mutationsList, observer) {
+                console.info("Mutation lists CB");
+                for(let mutation of mutationsList) {
+                    if (mutation.type === 'attributes') {
+                        const targetNode = document.getElementById(observed);
+                        console.info("Send sendGemGuiEvent", event_name, targetNode.id);
+                        const obj = {}; 
+                        for (const attr of targetNode.attributes)
+                                obj[attr.name] = attr.value;
+                        sendGemGuiEvent(observed, event_name, obj);
+                    }
+                }
+            };
+    
+            // Create an observer instance linked to the callback function
+            const observer = new MutationObserver(callback);
+            // Start observing the target node for configured mutations
+            observer.observe(targetNode, config);
+        }
+        add_mut_observer('content', 'test_event');
+        </script>
+    </body>
+</html>

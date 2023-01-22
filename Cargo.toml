@@ -1,0 +1,20 @@
+[workspace]
+
+# Rust wont support multiple build.rs file
+# Therefore examples are their own crates. 
+# Sad
+
+members = [
+    "gemgui",
+    "examples/hello",
+    "examples/hello_load",
+    "examples/ticks",
+    "examples/widgets",
+    "examples/hello_app",
+    "examples/zoom_rotator",
+    "examples/mouse_pick",
+    "examples/canvas"
+]
+
+[profile.release]
+lto = true

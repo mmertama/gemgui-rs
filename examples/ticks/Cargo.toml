@@ -1,0 +1,15 @@
+[package]
+name = "ticks"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+gemgui = {path  = "../../gemgui" }
+
+[dependencies]
+gemgui = {path  = "../../gemgui" }
+tokio = { version = "1", features = ["full"] }
+
+[[bin]]
+name = "ticks"
+path = "main.rs"

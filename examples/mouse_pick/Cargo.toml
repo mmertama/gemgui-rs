@@ -1,0 +1,16 @@
+[package]
+name = "mouse_pick"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+gemgui = {path  = "../../gemgui" }
+
+[dependencies]
+gemgui = {path  = "../../gemgui" }
+image = "0.24.5"
+bytes = "1.3.0"
+
+[[bin]]
+name = "mouse_pick"
+path = "main.rs"

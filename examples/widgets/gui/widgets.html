@@ -1,0 +1,72 @@
+<!doctype html>
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate, max-age=0" />
+<meta http-equiv="Pragma" content="no-cache" />
+<meta http-equiv="Expires" content="0" />
+<meta charset="UTF-8">
+<html lang="en">
+    <head>
+        <meta charset="utf-8">
+        <link rel="stylesheet" href="widgets.css" type="text/css" />
+        <title>Widgets</title>
+    </head>
+    <body>
+      <script type="text/javascript" src="gemgui.js"></script>
+
+      <h2 id="some_header"> Some Header </h2>
+
+      <button id="startbutton">Calc!</button>
+      <div id="content">
+      </div>
+
+      <label for="lang">Language: <span id="lang_value"></span></label>
+        <select name="languages" id="lang">
+          <option value="javascript">JavaScript</option>
+          <option value="php">PHP</option>
+          <option value="java">Java</option>
+          <option value="golang">Golang</option>
+          <option value="python">Python</option>
+          <option value="c#">C#</option>
+          <option value="C++">C++</option>
+          <option value="erlang">Erlang</option>
+        </select>
+
+      <div>  
+        <input type="radio" id="title_color_red" name="title_color" value="red">
+        <label for="title_color_red">Red</label><br>
+        <input type="radio" id="title_color_green" name="title_color" value="green">
+        <label for="title_color_green">Green</label><br>
+      </div>
+
+      <div>  
+        <input type="checkbox" id="image_2x">
+        <label for="image_2x">2X</label><br>
+      </div>
+
+      <label for="username">Username: </label>
+      <input type="text" id="username" name="username"><br>
+
+      <img id="rust_logo" src="widgets.jpeg" alt="widgets image" width="276"  height="262"/>
+
+      <div>
+        <canvas id="rotated" width="300" height="300"></canvas>
+        <label for="rotation">Rotation angle (0-360) <span id="angle_text">0</span>&#x2103;</label>
+        <input type="range" id="rotation" name="rotation" min="0" max="360">
+      <div>
+      
+        <p>
+          Choose your favorite transuranic element (actinide or transactinide).
+          <div><i>insipired: <a href=https://www.w3.org/WAI/ARIA/apg/example-index/listbox/listbox-scrollable>https://www.w3.org/WAI/ARIA/apg/example-index/listbox/listbox-scrollable</a></i></div>
+        </p>
+        <div class="listbox-area">
+          <div>
+            <h3>Transuranium elements: <span id="ss_elem" class="listbox-label"> </span></h3>
+            <ul id="ss_elem_list"
+                tabindex="0"
+                role="listbox"
+                aria-labelledby="ss_elem">
+            </ul>
+          </div>
+        </div>  
+        
+    </body>
+</html>

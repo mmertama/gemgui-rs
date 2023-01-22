@@ -1,0 +1,15 @@
+[package]
+name = "widgets"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+gemgui = {path  = "../../gemgui" }
+
+[dependencies]
+gemgui = {path  = "../../gemgui" }
+
+
+[[bin]]
+name = "widgets"
+path = "main.rs"

@@ -1,0 +1,15 @@
+[package]
+name = "zoom_rotator"
+version = "0.1.0"
+edition = "2021"
+
+[build-dependencies]
+gemgui = {path  = "../../gemgui" }
+
+[dependencies]
+gemgui = {path  = "../../gemgui" }
+bytes = "1.3.0"
+
+[[bin]]
+name = "zoom_rotator"
+path = "main.rs"

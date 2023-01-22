@@ -1,0 +1,20 @@
+[package]
+name = "hello_load"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+
+
+[dependencies]
+gemgui = {path  = "../../gemgui" }
+tokio = { version = "1", features = ["full"] }
+
+
+[[bin]]
+name = "hello_load"
+path = "main.rs"
+
+

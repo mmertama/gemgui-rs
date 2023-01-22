@@ -1,0 +1,53 @@
+[package]
+name = "gemgui"
+version = "0.1.0"
+edition = "2021"
+authors = ["Markus Mertama"]
+license = "MIT"
+keywords = ["gui", "ui", "application", "graphics"]
+categories = ["gui"]
+description = "GUI application library"
+homepage = "https://github.com/mmertama/gemgui-rs"
+repository = "https://github.com/mmertama/gemgui-rs"
+readme = "../README.md"
+
+[package.metadata]
+html = "js"
+
+[build-dependencies]
+cargo_metadata = "0.15.1"
+base64 = "0.13"
+regex = "1"
+minifier = "0.2.2"
+
+[dependencies]
+tokio = { version = "1", features = ["full"] }
+warp = "0.3"
+futures = "0.3"
+base64 = "0.13"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+rand = "0.8.3"
+dyn-clone = "1.0.9"
+port_scanner  = "0.1.5"
+color-name = "1.1.0"
+regex = "1.7.0"
+phf = { version = "0.11", features = ["macros"] }
+substring = "1.4.5"
+byteorder = "1.4.3"
+image = "0.24.5"
+
+# these for respack
+cargo_metadata = "0.15.1"
+minifier = "0.2.2"
+
+[dev-dependencies]
+serial_test = "1.0.0"
+
+[lib]
+name = "gemgui"
+path = "src/gemgui.rs" 
+
+[profile.release]
+lto = true
+# Consider apply when more mature: panic = "abort"
