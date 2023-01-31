@@ -2,7 +2,7 @@ use std::path::Path;
 
 
 pub (crate) fn html_file_launch_cmd() -> Option<String> {
-    if cfg!(target_os = "unix") {
+    if cfg!(target_os = "unix") || cfg!(target_os = "linux") {
         return Some("x-www-browser".to_string());
     }
     if cfg!(target_os = "macos") {
