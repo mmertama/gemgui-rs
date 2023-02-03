@@ -47,15 +47,16 @@ pub fn headless_params(log: bool) -> Vec<String> {
 }
 
 #[allow(unused)]
-pub fn system_chrome() -> Option<String> {
+pub fn system_chrome() -> Option<(String, Vec<String>)> {
     if cfg!(target_os = "unix") {
-        return Some(String::from("chromium-browser"));
+        return Some((String::from("chromium-browser"), Vec::new()));
     }
     if cfg!(target_os = "macos") {
-        return Some(String::from(r#"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"#));
+        return Some((String::from(r#"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"#), Vec::new()));
     }
     if cfg!(target_os = "windows") {
-        return Some(String::from(r#"start "_" "C:\Program Files (x86)\Google\Chrome\Application\chrome.exe""#));
+        return Some((
+         r#"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"#.to_string(), Vec::new()));
     }
     None
 }
@@ -80,10 +81,15 @@ pub fn kill_headless() -> bool {
     match output {
         Ok(out) => {
             println!("kill headless: status: {}", out.status);
-            let cout = std::str::from_utf8(&out.stdout);
-            let cerr = std::str::from_utf8(&out.stderr);
-            println!("headless: killed: out: {}\n err: {}", cout.unwrap_or("???"), cerr.unwrap_or("???"));
-            true}, // here we get handle to spawned UI - not used now as exit is done nicely
+            if (!out.status.success()) {
+                let cout = std::str::from_utf8(&out.stdout);
+                let cerr = std::str::from_utf8(&out.stderr);
+                println!("headless: killed: out: {}\n err: {}", cout.unwrap_or("???"), cerr.unwrap_or("???"));
+            } else {
+                println!("UI killed ok");
+            }
+            true // here we get handle to spawned UI - not used now as exit is done nicely
+        },
         Err(e) => {
             eprintln!("Kill error: {}", e);
             false

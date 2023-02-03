@@ -355,7 +355,7 @@ impl Gui {
     
     );
 
-        let start_cmd = utils::html_file_launch_cmd().map(|c| (c, Vec::new()));
+        let start_cmd = utils::html_file_launch_cmd();
 
         Ok(Gui{
             ui: Arc::new(Mutex::new(ui)),
@@ -377,14 +377,18 @@ impl Gui {
             index_html);
        
         let output = Command::new(&cmd.0)
-            .args(cmd.1)
-            .arg(cmd_line)
+            .args(&cmd.1)
+            .arg(&cmd_line)
             .spawn();
 
         match output {
             Ok(_child) => {true}, // here we get handle to spawned UI - not used now as exit is done nicely
             Err(e) => {
-                eprintln!("Error: {}", e);
+                if cmd.1.is_empty() {
+                    eprintln!("Error while spawning call:'{}' target:'{}' error:{}", cmd.0, cmd_line, e);
+                } else {
+                    eprintln!("Error while spawning call:'{}' params:'{:#?}' target:'{}' error:{}", cmd.0, cmd.1, cmd_line, e);
+                }
                 false
             }
         } 
