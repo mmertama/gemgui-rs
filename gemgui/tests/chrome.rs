@@ -65,7 +65,8 @@ pub fn system_chrome() -> Option<String> {
 pub fn kill_headless() -> bool {
     let cmd = 
     if cfg!(target_os = "windows") {
-        ("powershell.exe", vec!(r#"-command "Get-CimInstance -ClassName Win32_Process -Filter \"CommandLine LIKE '%--headless%'\" | %{Stop-Process -Id $_.ProcessId}")""#))
+        ("powershell.exe", vec!("-command",
+         r#""Get-CimInstance -ClassName Win32_Process -Filter 'CommandLine LIKE ''%--headless%'' | %{Stop-Process -Id $_.ProcessId}""#))
     } else {    
         //("pkill", vec!(r#"-f \"(chrome)?(--headless)\""#))
         ("pkill", vec!("-f", r#"Google Chrome.*headless"#))
@@ -78,8 +79,10 @@ pub fn kill_headless() -> bool {
 
     match output {
         Ok(out) => {
-            println!("status: {}", out.status);
-            println!("killed: {:#?} {:#?}", out.stderr, out.stdout);
+            println!("kill headless: status: {}", out.status);
+            let cout = std::str::from_utf8(&out.stdout);
+            let cerr = std::str::from_utf8(&out.stderr);
+            println!("headless: killed: out: {}\n err: {}", cout.unwrap_or("???"), cerr.unwrap_or("???"));
             true}, // here we get handle to spawned UI - not used now as exit is done nicely
         Err(e) => {
             eprintln!("Kill error: {}", e);

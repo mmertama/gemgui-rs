@@ -1,0 +1,57 @@
+name: gemgui_release
+
+on: [push]
+
+jobs:
+  build:
+    name: ${{ matrix.config.name }}
+    runs-on: ${{ matrix.config.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        config:
+          - {
+              name: "Windows MSVC",
+              os: windows-latest,
+              toolchain: x86_64-pc-windows-msvc
+            }
+          - {
+              name: "Windows MinGW",
+              os: windows-latest,
+              toolchain: x86_64-pc-windows-gnu
+            }  
+          - {
+              name: "Ubuntu",
+              os: ubuntu-latest,
+              toolchain: x86_64-unknown-linux-gnu
+            }
+          - {
+              name: "MacOS",
+              os: macos-latest,
+              toolchain: x86_64-apple-darwin
+            }
+
+    steps:
+    - name: Checkout
+      uses: actions/checkout@v3
+
+    - name: Setup Rust Toolchain for GitHub CI
+      uses: actions-rust-lang/setup-rust-toolchain@v1
+      with:
+          toolchain: stable
+          target: ${{ matrix.config.toolchain }}
+    
+    - name: Build
+      run: cargo build --verbose
+
+    - name: Test
+      run: cargo test --verbose -- --nocapture
+      if: startsWith(matrix.config.os, 'macos') || startsWith(matrix.config.os, 'windows') 
+
+    - name: Test
+      if: startsWith(matrix.config.os, 'linux')
+      run: |
+          export DISPLAY=:99
+          sudo Xvfb -ac :99 -screen 0 1280x1024x24 > /dev/null 2>&1 & 
+          cargo test --verbose -- --nocapture 
+
