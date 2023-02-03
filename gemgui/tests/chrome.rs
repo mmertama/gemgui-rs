@@ -1,3 +1,7 @@
+use std::env;
+
+use which::which;
+
 // collection of parameters that may speed up the chromium perf on headless
 #[allow(unused)]
 fn speed_params() -> Vec<&'static str> {
@@ -48,15 +52,23 @@ pub fn headless_params(log: bool) -> Vec<String> {
 
 #[allow(unused)]
 pub fn system_chrome() -> Option<(String, Vec<String>)> {
-    if cfg!(target_os = "unix") {
+    if cfg!(target_os = "unix") || cfg!(target_os = "linux")  {
+         // it has not been need for result, change if not found
         return Some((String::from("chromium-browser"), Vec::new()));
     }
     if cfg!(target_os = "macos") {
+        // it has not been need for result, change if not found
         return Some((String::from(r#"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"#), Vec::new()));
     }
     if cfg!(target_os = "windows") {
-        return Some((
-         r#"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe"#.to_string(), Vec::new()));
+         // Chrome installer wont update the PATH so we do an educated guess...
+         let mut path = env::var("PATH").expect("PATH is not set!");
+         if ! path.contains("chrome") {
+             let path = format!("{};{}", r#"C:\Program Files (x86)\Google\Chrome\Application"#, path);
+             env::set_var("PATH", path);
+         }
+        let result = which("chrome").expect("Tests requires that chrome is installed!");
+        return Some(( result.to_str().unwrap().to_string(), Vec::new()));
     }
     None
 }

@@ -1,6 +1,6 @@
 [package]
 name = "gemgui"
-version = "0.1.1"
+version = "0.1.2"
 edition = "2021"
 authors = ["Markus Mertama"]
 license = "MIT"
@@ -43,6 +43,7 @@ minifier = "0.2.2"
 
 [dev-dependencies]
 serial_test = "1.0.0"
+which = "4.4.0"
 
 [lib]
 name = "gemgui"

@@ -39,26 +39,5 @@ pub (crate) fn setup () -> gemgui::ui::Gui {
         ui
         }
 
-/*
-#[macro_export]
-macro_rules! setup {
-    () => { {
-        initialize();
-        let path = std::path::Path::new("tests/assets");
-        let fm = gemgui::filemap_from_dir(&path).unwrap();
-        let port = 30000u16;
-        chrome::kill_headless();
-        while(!gemgui::wait_free_port(port, Duration::from_secs(2))) {
-            chrome::kill_headless();
-        }
-        let mut ui = gemgui::ui::Ui::new(fm, String::from("tests.html"), port).unwrap();
-        let chrome = chrome::system_chrome();
-        if chrome.is_some() {
-            ui.set_gui_command_line(chrome.unwrap(), chrome::headless_params(false));
-            }
-        ui
-        }
-    };
-*/
 
 
