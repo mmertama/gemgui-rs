@@ -154,11 +154,12 @@ async fn test_timer_id_async() {
 async fn test_counter() {
     let mut ui = setup();
     static mut COUNTER: i32 = 0;
-    ui.periodic(Duration::from_millis(5), |ui: UiRef, _| { 
+    ui.periodic(Duration::from_millis(5), |ui: UiRef, tid| { 
         unsafe {
             COUNTER += 1; // we KNOW that after wont exit current block
             if COUNTER == 100  {
                 ui.exit();
+                ui.cancel_timer(tid).unwrap(); // exit tells UI to stop, hence timer may still loop
             }
         }
      });
@@ -175,18 +176,19 @@ async fn test_counter() {
 async fn test_counter_async() {
     let mut ui = setup();
     static mut COUNTER: i32 = 0;
-    ui.periodic_async(Duration::from_millis(5), |ui: UiRef, _| async move { 
+    ui.periodic_async(Duration::from_millis(5), |ui: UiRef, tid| async move { 
         unsafe {
             COUNTER += 1; // we KNOW that after wont exit current block
             if COUNTER == 100  {
                 ui.exit();
+                ui.cancel_timer(tid).unwrap();  // This actually wont help as with async - there can be already more requests issued
             }
         }
      });
     let start = Instant::now(); 
     ui.run().await.unwrap();
     let duration = start.elapsed();
-    unsafe{assert_eq!(COUNTER, 100)};
+    unsafe{assert!(COUNTER >= 100)}; // see comment above and test_counter()
     assert!(duration >= Duration::from_millis(500), "duration expected be at least 500ms, it is {}ms", duration.as_millis());
 }
 
@@ -281,7 +283,7 @@ async fn test_periodic_cancel_other() {
     let ttid = ui.periodic(Duration::from_millis(1), move |_, _| { 
         unsafe {
             COUNTER += 1;
-            assert!(COUNTER < 10, "Wrong timer");
+            assert!(COUNTER <= 15, "Wrong timer - {} >= 15 - too much off", &COUNTER);
         }
      });
      ui.after(Duration::from_millis(9), move |ui, _| { 

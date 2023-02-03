@@ -11,7 +11,7 @@ fn initialize() {
     INIT.call_once(|| {
         panic::set_hook(Box::new(|e| {
             let killed = chrome::kill_headless();
-            println!("Test panic {}, headlerss killed: {}", e, killed);
+            println!("Test panic {}, headless killed: {}", e, killed);
             std::process::exit(1);
         }));
     });
@@ -30,7 +30,11 @@ pub (crate) fn setup () -> gemgui::ui::Gui {
         let mut ui = gemgui::ui::Gui::new(fm, "tests.html", port).unwrap();
         let chrome = chrome::system_chrome();
         if chrome.is_some() {
-            ui.set_gui_command_line(&chrome.unwrap(), &chrome::headless_params(false));
+            let (cmd, cmd_params) = chrome.unwrap();
+            let mut params = cmd_params.clone();
+            let mut chrome_params = chrome::headless_params(false);
+            params.append(&mut chrome_params);
+            ui.set_gui_command_line(&cmd, &params);
             }
         ui
         }

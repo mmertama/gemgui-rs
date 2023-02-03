@@ -44,10 +44,13 @@ jobs:
     - name: Build
       run: cargo build --verbose
 
+    - name: Setup Chrome
+      uses: browser-actions/setup-chrome@v1  
+
     - name: Test
       run: cargo test --verbose -- --nocapture
-      if: startsWith(matrix.config.os, 'macos') || startsWith(matrix.config.os, 'windows') 
-
+      if: startsWith(matrix.config.os, 'macos') || startsWith(matrix.config.os, 'windows')
+   
     - name: Test
       if: startsWith(matrix.config.os, 'linux')
       run: |
