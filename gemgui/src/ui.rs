@@ -3,6 +3,7 @@ mod utils;
 
 use crate::Result;
 
+use core::fmt;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -294,6 +295,7 @@ pub trait Ui : private::UserInterface {
 
 
 /// Ui instance
+
 pub struct Gui  {
     ui: UiDataRef,
     index_html : String,
@@ -305,6 +307,22 @@ pub struct Gui  {
     on_start_notifee: watch::Sender<State>,
     on_reload_cb: Option<Box<dyn FnMut(UiRef)>>,
     on_error_cb: Option<Box<dyn FnMut(UiRef, String)>>,
+}
+
+impl fmt::Debug for Gui {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+
+        let ui = self.ui.lock().unwrap();
+        let empty: (String, Vec<String>) = ("".to_string(), vec!());
+        let (cmd, params) = if ! self.start_cmd.is_none() {self.start_cmd.as_ref().unwrap()} else {&empty};
+        f.debug_struct("Gui")
+         .field("ui", &ui)
+         .field("server", &self.server)
+         .field("index_html", &self.index_html)
+         .field("start_cmd", &cmd)
+         .field("start_params", &params)
+         .finish()
+    }
 }
 
 

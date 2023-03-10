@@ -43,7 +43,7 @@ pub fn headless_params(log: bool) -> Vec<String> {
     if log {
         p.push("--enable-logging --v=0");
     } else {
-        p.push(" -disable-logging");
+        p.push("--disable-logging");
     }
     
     params.append(&mut p);
@@ -53,12 +53,19 @@ pub fn headless_params(log: bool) -> Vec<String> {
 #[allow(unused)]
 pub fn system_chrome() -> Option<(String, Vec<String>)> {
     if cfg!(target_os = "unix") || cfg!(target_os = "linux")  {
-         // it has not been need for result, change if not found
-        return Some((String::from("chromium-browser"), Vec::new()));
+        for browser in vec!("chromium-chrome", "google-chrome").into_iter() {
+            if which(&browser).is_ok() {
+                return Some((String::from(browser), Vec::new()));
+            }
+        }
     }
     if cfg!(target_os = "macos") {
         // it has not been need for result, change if not found
-        return Some((String::from(r#"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"#), Vec::new()));
+        let result = which("google-chrome");
+        return match(result) {
+            Ok(path) => Some((path.to_str().unwrap().to_string(), Vec::new())),
+            Err(_) => Some((String::from(r#"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"#), Vec::new()))
+        }
     }
     if cfg!(target_os = "windows") {
          // Chrome installer wont update the PATH so we do an educated guess...

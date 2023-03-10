@@ -25,6 +25,7 @@ use futures::Future;
 use rand::Rng;
 use serde_json::Value;
 use tokio::sync::watch;
+use core::fmt;
 use std::collections::HashMap;
 use std::path;
 
@@ -73,6 +74,19 @@ pub struct UiData {
     on_start_notify: watch::Receiver<State>,
     filemap: Arc<Mutex<Filemap>>,
     subscription_sender: SubscriptionSender,
+}
+
+impl fmt::Debug for UiData {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let fm = self.filemap.lock().unwrap();
+        f.debug_struct("UiData")
+             .field("filemap", &fm.keys())
+             .field("started", &self.started)
+             .field("queries", &self.queries.keys())
+             .field("elements", &self.elements.keys())
+             .field("timers", &self.timers.keys())
+             .finish()
+    }
 }
 
 

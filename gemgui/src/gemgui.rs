@@ -532,6 +532,7 @@ pub fn wait_free_port(port: u16, max_wait: Duration) -> bool {
 pub fn application<CB, Fut>(filemap: Filemap, index_html: &str, port: u16, application_cb: CB)  -> Result<()> 
 where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
     Fut: Future<Output = ()> + Send + 'static {
+    debug_assert!(filemap.contains_key(index_html));    
     let result: Arc<Mutex<Option<GemGuiError>>> = Arc::new(Mutex::new(None));
         tokio::runtime::Builder::new_multi_thread()
         .enable_all()

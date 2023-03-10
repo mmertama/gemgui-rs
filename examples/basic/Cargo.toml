@@ -1,0 +1,22 @@
+[package]
+name = "basic"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[build-dependencies]
+gemgui = {path  = "../../gemgui" }
+
+[dependencies]
+gemgui = {path  = "../../gemgui" }
+tokio = { version = "1", features = ["full"] }
+
+
+[[bin]]
+name = "basic"
+path = "main.rs"
+
+
+
+

@@ -1,12 +1,13 @@
 #[path="./chrome.rs"]
 mod chrome;
+use std::path::PathBuf;
 use std::sync::Once;
 use std::panic;
 use std::time::Duration;
 
 
 #[allow(unused)]
-fn initialize() {
+fn initialize() { 
     static INIT: Once = Once::new();
     INIT.call_once(|| {
         panic::set_hook(Box::new(|e| {
@@ -15,12 +16,14 @@ fn initialize() {
             std::process::exit(1);
         }));
     });
+    
 }
 
 #[allow(unused)]
 pub (crate) fn setup () -> gemgui::ui::Gui { 
         initialize();
-        let path = std::path::Path::new("tests/assets");
+        let mut path = PathBuf::from(env!("CARGO_MANIFEST_DIR"));
+        path.push("tests/assets");
         let fm = gemgui::filemap_from_dir(&path).unwrap();
         let port = 30000u16;
         chrome::kill_headless();
@@ -38,6 +41,5 @@ pub (crate) fn setup () -> gemgui::ui::Gui {
             }
         ui
         }
-
 
 

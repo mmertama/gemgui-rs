@@ -17,16 +17,18 @@ use crate::tests::setup;
 #[path="./tests.rs"]
 mod tests;
 
+
 #[tokio::test]
 #[serial]
 async fn test_on_start() { // These on_xxxx tests that there is no deadlock as element do locking
-    let mut ui = setup();
-    ui.on_start(|ui| {
+     let mut ui = setup();
+     ui.on_start(|ui| {
         let comp = ui.element("content"); 
         assert_ne!(comp.id(), ui.root().id());
         ui.exit();
     });
     ui.run().await.unwrap();
+    println!("ui: {:#?}", ui);
 }
 
 #[tokio::test]
@@ -40,7 +42,7 @@ async fn test_on_start_async() { // These on_xxxx tests that there is no deadloc
     });
     ui.run().await.unwrap();
 }
-
+ 
 #[tokio::test]
 #[serial]
 async fn test_on_error() { // These on_xxxx tests that there is no deadlock as element do locking

@@ -7,6 +7,7 @@ use warp::ws::Ws;
 
 use futures::stream::StreamExt;
 
+use core::fmt;
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -35,6 +36,16 @@ pub struct WSServer {
     subscription_sender: SubscriptionSender<String>
 }
 
+
+impl fmt::Debug for WSServer {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        let buf = self.buffer.lock().unwrap();
+        f.debug_struct("Server")
+        .field("port", &self.port)
+        .field("message queue size", &buf.len())
+        .finish()
+    }
+}
 
 #[derive(Clone)]
 pub (crate) struct MsgTx {

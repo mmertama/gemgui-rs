@@ -13,7 +13,8 @@ members = [
     "examples/hello_app",
     "examples/zoom_rotator",
     "examples/mouse_pick",
-    "examples/canvas"
+    "examples/canvas",
+    "examples/basic"
 ]
 
 [profile.release]
