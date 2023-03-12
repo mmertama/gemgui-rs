@@ -138,18 +138,25 @@ impl WSServer {
     // Mutex protected data accessor, we cannot use await in iteration (for) loop
     // as then mutex is locked and async-send cannot happen
     // Just clone data from index 
-    fn take_as_msg( buffer: &MessageBuffer) -> Vec<JSType> {
+    fn take_as_msg( buffer: &MessageBuffer) -> (Vec<JSType>, Vec<Vec<u8>>) {
         let mut buf = buffer.lock().unwrap();
-        let vec = buf.iter().map(|msg| {
-            let s = msg.to_str().unwrap();
-            serde_json::from_str(s).unwrap()
-        }).collect(); // sigh copying values back and forth due types
+        let mut vec_txt = Vec::new();
+        let mut vec_bin = Vec::new();
+        for msg in buf.iter() {
+            if msg.is_text() {
+                let s = msg.to_str().unwrap();
+                let json = serde_json::from_str(s).unwrap();
+                vec_txt.push(json);
+            } else {
+                vec_bin.push(msg.as_bytes().to_vec());
+            }
+        }
         buf.clear();
-        vec    
+        (vec_txt, vec_bin)    
     }
 
     async fn send_buffered(sender: &mut SplitSink<WebSocket, Message>, buffer: &MessageBuffer) { 
-        let msg_buffer = Self::take_as_msg(buffer);
+        let (msg_buffer, msg_bin) = Self::take_as_msg(buffer);
         let msg = JSMessageTx {
             element: ROOT_ID,
             _type: "batch",
@@ -158,6 +165,10 @@ impl WSServer {
         };
         let json = serde_json::to_string(&msg).unwrap();
         sender.send(Message::text(json)).await.unwrap_or_else(|e| eprintln!("Cannot send {}", e));
+        // binary messages cannot sent as batch 
+        for item in msg_bin {
+            sender.send(Message::binary(item)).await.unwrap_or_else(|e| eprintln!("Cannot send {}", e));
+        }
     }
 
     //TODO refactor this call, messy and lot of ARCs...

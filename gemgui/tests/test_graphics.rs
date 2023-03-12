@@ -3,7 +3,7 @@ use std::{time::Duration};
 use serial_test::serial;
 use crate::tests::setup;
 
-use gemgui::{graphics::{canvas::{Canvas, DrawNotify}, context::{TextBaseLine, Context2D, TextAlign}, color as Color}, Rect, ui_ref::UiRef, ui::Ui};
+use gemgui::{graphics::{canvas::{Canvas, DrawNotify}, context::{TextBaseLine, Context2D, TextAlign}, color as Color, bitmap::Bitmap}, Rect, ui_ref::UiRef, ui::Ui};
 
 
 #[path="./tests.rs"]
@@ -14,8 +14,8 @@ fn timeout(time: u64) -> tokio::task::JoinHandle<()> {
     let backtrace = std::backtrace::Backtrace::force_capture();
     tokio::task::spawn(async move {
         tokio::time::sleep(Duration::from_millis(time)).await;
-        eprintln!("timeout {}", backtrace);
-        std::process::exit(1);    
+        eprintln!("Timeout - backtrace {}", backtrace);
+        std::process::exit(62);    
     })
 }
 
@@ -173,6 +173,7 @@ async fn test_image_external() {
 #[serial]
 async fn test_image_added() {
     let mut ui = setup();
+    let t = timeout(3000);
     ui.on_start_async(|ui| async move {
         let canvas = Canvas::new(&ui.element("canvas"));
         let res = ui.add_resource("./tests/ext/walruses.jpeg").unwrap();
@@ -180,7 +181,138 @@ async fn test_image_added() {
             let canvas = Canvas::new(&ui.element("canvas"));
             canvas.draw_image(&image, 0, 0, None);
             ui.exit();
-        }).await.unwrap();
+        }).await.unwrap();    
     });
     ui.run().await.unwrap();
+    t.abort();
 }
+
+
+async fn bitmap_test(x: i32, y: i32, w: u32, h: u32) {
+    let mut ui = setup();
+    let no_call = x >= 500 || x + (w as i32) <= 0 || y >= 500 || y + (h as i32) <= 0;
+    let t = timeout(5000);
+    if no_call {
+        ui.after(Duration::from_secs(3), |ui, _| ui.exit());
+    }
+    let canvas = Canvas::new(&ui.element("canvas"));
+    let bmp = Bitmap::rect(w, h, Color::CYAN);
+    canvas.on_draw(move |ui| {
+        assert!(!no_call);
+        ui.exit();
+    }, DrawNotify::NoKick);
+    canvas.draw_bitmap_at(x, y, &bmp);
+    ui.run().await.unwrap();
+    t.abort();
+}
+ 
+/*#[tokio::test]
+#[serial]
+async fn test_bitmap_draw1() {
+    bitmap_test(0, 0, 10, 10).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw2() {
+    bitmap_test(0, 0, 500, 500).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw3() {
+    bitmap_test(0, 0, 1000, 1000).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw4() {
+    bitmap_test(-10, -10, 100, 100).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw5() {
+    bitmap_test(450, 450, 100, 100).await
+}
+
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw6() {
+    bitmap_test(500, 500, 100, 100).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw7() {
+    bitmap_test(510, 510, 100, 100).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw8() {
+    bitmap_test(10, 510, 100, 100).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw9() {
+    bitmap_test(510, 10, 100, 100).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw10() {
+    bitmap_test(-10, -10, 10, 10).await
+}
+*/
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw11() {
+    bitmap_test(-1, -10, 10, 10).await
+}
+
+/*#[tokio::test]
+#[serial]
+async fn test_bitmap_draw12() {
+    bitmap_test(-10, -1, 10, 10).await
+}
+
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw13() {
+    bitmap_test(-5, -5, 10, 10).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw14() {
+    bitmap_test(5, -5, 10, 10).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw15() {
+    bitmap_test(-5, 5, 10, 10).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw16() {
+    bitmap_test(500, 500, 10, 10).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw17() {
+    bitmap_test(-5, 500, 10, 10).await
+}
+
+#[tokio::test]
+#[serial]
+async fn test_bitmap_draw18() {
+    bitmap_test(500, 5, 10, 10).await
+}
+*/

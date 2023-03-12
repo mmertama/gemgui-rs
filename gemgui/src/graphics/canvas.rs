@@ -1,7 +1,7 @@
 use std::{ops::Deref, collections::HashMap};
 
 use byteorder::{WriteBytesExt, LittleEndian};
-use crate::{graphics::{color as Color}, ui_data::UiData, Rect, Result, GemGuiError};
+use crate::{graphics::{color as Color}, ui_data::UiData, Rect, Result};
 use futures::Future;
 use crate::{element::Element, ui_ref::UiRef, JSMessageTx, graphics::bitmap::BitmapData};
 
@@ -222,7 +222,7 @@ impl Canvas {
     /// 
     /// `bitmap` - to be drawn.
     pub fn draw_bitmap(&self, bitmap: &dyn BitmapData) {
-        self.paint_bitmap(0, 0, bitmap, true).unwrap()
+        self.paint_bitmap(0, 0, bitmap, true)
     }
 
     /// Draws a given bitmap to the coordinates
@@ -236,7 +236,7 @@ impl Canvas {
     /// `y` - y coordinate, does not have to be in canvas
     /// 
     /// `bitmap` - to be drawn
-    pub fn draw_bitmap_at(&self,  x: i32, y: i32, bitmap: &dyn BitmapData) -> Result<()> {
+    pub fn draw_bitmap_at(&self,  x: i32, y: i32, bitmap: &dyn BitmapData) {
         self.paint_bitmap(x, y, bitmap, true)
     }
 
@@ -251,21 +251,31 @@ impl Canvas {
     /// `y` - y coordinate, does not have to be in canvas
     /// 
     /// `bitmap` - to be drawn
-    pub fn paint(&self, x: i32, y: i32, bitmap: &dyn BitmapData) -> Result<()> {
+    pub fn paint(&self, x: i32, y: i32, bitmap: &dyn BitmapData) {
         self.paint_bitmap(x, y, bitmap, false)
     }
 
-    fn paint_bitmap(&self, x: i32, y: i32, bitmap: &dyn BitmapData, as_draw: bool) -> Result<()> {
-        if (y + (bitmap.height() as i32) <= 0) || (x + (bitmap.width() as i32) <= 0) {
-            return GemGuiError::error(&format!("Invalid bitmap rect x:{} y:{} width:{} height:{}", x, y, bitmap.width(), bitmap.height()));
+    fn paint_bitmap(&self, x_pos: i32, y_pos: i32, bitmap: &dyn BitmapData, as_draw: bool) {
+        if bitmap.height() ==  0|| bitmap.width() == 0 {
+            return;
         }
         
-        let height = if y < 0 {(bitmap.height() as i32 + y) as u32 } else {bitmap.height()};
-        let y = y.max(0) as u32;
-        let width = if x < 0 {(bitmap.width() as i32 + x) as u32 } else {bitmap.width()};
-        let x = x.max(0) as u32;
+        if (y_pos + (bitmap.height() as i32) <= 0) || (x_pos + (bitmap.width() as i32) <= 0) {
+            return;
+        }
+        
+        let height = if y_pos < 0 {(bitmap.height() as i32 + y_pos) as u32 } else {bitmap.height()};
+        let y = if y_pos < 0 {-y_pos} else {0} as u32;
+        let y_pos = y_pos.max(0) as u32;
+
+        let width = if x_pos < 0 {(bitmap.width() as i32 + x_pos) as u32 } else {bitmap.width()};
+        let x = if x_pos < 0 {-x_pos} else {0} as u32;
+        let x_pos = x_pos.max(0) as u32;
 
         let mut is_last = false;
+
+        debug_assert!(y < bitmap.height());
+        debug_assert!(x < bitmap.width());
 
         for j in (y..height).step_by(TILE_HEIGHT as usize) {
             let height = TILE_HEIGHT.min(bitmap.height() - j);
@@ -277,10 +287,10 @@ impl Canvas {
                 debug_assert!(!is_last);
                 is_last = (bitmap.height() - j < TILE_HEIGHT) && (bitmap.width() - i < TILE_WIDTH);
                 let header = vec!(
-                    i as u32,
-                    j as u32,
-                    width as u32,
-                    height as u32,
+                    i + x_pos,
+                    j + y_pos,
+                    width,
+                    height,
                     // figure out if this is the last one if set notification
                     (as_draw && is_last) as u32
                 );
@@ -341,8 +351,6 @@ impl Canvas {
             self.element().send_bin(vec8);            
         }
         
-
-        Ok(()) 
     } 
 
      

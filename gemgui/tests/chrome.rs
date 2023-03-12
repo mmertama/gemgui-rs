@@ -87,9 +87,15 @@ pub fn kill_headless() -> bool {
     if cfg!(target_os = "windows") {
         ("powershell.exe", vec!("-command",
          r#""Get-CimInstance -ClassName Win32_Process -Filter 'CommandLine LIKE ''%--headless%'' | %{Stop-Process -Id $_.ProcessId}""#))
-    } else {    
+    } else if cfg!(target_os = "macos") {
         //("pkill", vec!(r#"-f \"(chrome)?(--headless)\""#))
         ("pkill", vec!("-f", r#"Google Chrome.*headless"#))
+    } else {
+        if(which("chromium-chrome").is_ok()) {
+            ("pkill", vec!("-f", r#"chromium.*headless"#))
+        } else {
+            ("pkill", vec!("-f", r#"chrome.*headless"#))
+        }
     };
 
     let output = std::process::Command::new(cmd.0)

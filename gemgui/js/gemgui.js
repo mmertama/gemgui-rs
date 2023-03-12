@@ -351,7 +351,6 @@ function handleBinary(buffer) {
 
         // if as_draw AND there is a notification request - send a notify
         if ((as_draw != 0) && event_notifiers.has("canvas_draw")) {
-            console.log("fond");
             socket.send(JSON.stringify({
                                             'type': 'event',
                                             'element': id,
