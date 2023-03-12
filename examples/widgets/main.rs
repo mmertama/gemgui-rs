@@ -92,8 +92,9 @@ async fn list_box(ui: &UiRef) {
   //list_box.subscribe(CLICK, move |_,_| println!("on"));
   for item in items.iter() {
     let id = format!("ss_elem_{}", &item[0..3]); // take 
-    let list_item= ui.add_element_with_id(&id, "li", &list_box).await.unwrap();
+    let list_item= ui.add_element_with_id(&id, "li", &list_box).unwrap();
     assert_eq!(list_item.id(), &id);
+    assert!(ui.exists(&id).await.unwrap());
     list_item.set_attribute("role", "option");
     list_item.set_html(item);
     let html = item.to_string();

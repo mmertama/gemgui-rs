@@ -80,7 +80,7 @@ function assert(condition, msg) {
 }
 
 function createElement(parent, tag, id) {
-    console.log("createElement", "parent", tag, id);
+    
     if(document.getElementById(id) == null) {
         const el = document.createElement(tag);
         if(!el) {
@@ -91,8 +91,8 @@ function createElement(parent, tag, id) {
         if(parent)
             parent.appendChild(el);
         else
-            document.body.appendChild(el); 
-        console.log("created", tag, el.tagName, id, el.id, document.getElementById(id));
+            document.body.appendChild(el);
+        log("created", tag, id, parent, el.id);
     } else {
         errlog("createElement", "Element exists " + id);
     }
@@ -165,24 +165,37 @@ function addEvent(el, source, eventname, properties, throttle) {
 
     const usedHandler = throttle && throttle > 0 ? throttled(throttle, handler) : handler;
     if(eventname === 'resize') { //Only window supports the resize event
-        console.log("addEventing", "window", source, eventname, throttle);
+        log("addEventing", "window", source, eventname, throttle);
         window.addEventListener(eventname, usedHandler);
     }
     else if(el === document.body && eventname === 'scroll' ) { //root == document.body, document listens scroll
-        console.log("addEventing", "document", source, eventname, throttle);
+        log("addEventing", "document", source, eventname, throttle);
         document.addEventListener(eventname, usedHandler);
     }
     else if(eventname === 'load') {
-        console.log("fiifoo", el, source, eventname, throttle);
+        let on_complete = function() {
+            if(properties.includes('complete') && (!el.complete || (0 == el.width && 0 == el.height))) {
+                log("Element ", el.id, "is not ready....wait");
+                setTimeout(on_complete, 500);
+            } else {
+                log("Element ", el.id, "is ready...send", el.complete, el.width, el.height);
+                socket.send(JSON.stringify({'type': 'event',  'element': el.id, 'event': 'load', 'properties': {
+                    'complete': el.complete,
+                    'width': el.width,
+                    'height': el.height
+                }}));
+            }
+        };
         if (el.complete) {
-            socket.send(JSON.stringify({'type': 'event',  'element': el.id, 'event': 'load', 'properties': {}}));
+            on_complete();
         } else {
-            console.log("addEventing", el, source, eventname, throttle);
-            el.addEventListener(eventname, usedHandler);
-        }
+            log("addEventing", el, source, eventname, throttle);
+             // addEventListener(eventname, usedHandler); works only with window
+            el.onload = on_complete;
+            }
     }
     else {
-        console.log("addEventing", el, source, eventname, throttle);
+        log("addEventing", el, source, eventname, throttle);
         el.addEventListener(eventname, usedHandler);
     }
 }
@@ -331,16 +344,18 @@ function handleBinary(buffer) {
         const element = document.getElementById(id);
 
         if(!element) {
-            errlog(id, "element not found '" + id + "'");
+            errlog(id, "Canvas not found '" + id + "'" + " at: ", idOffset, " len: ", idLen);
             return;
         }
 
         if (datalen > 0) { // otherwise this is just a tail
             const ctx = element.getContext("2d", {alpha:false});
             if(ctx) {
-                const bytesLen = w * h * 4;
-                const imageData = data.length === bytesLen ? new ImageData(data, w, h) : new ImageData(data.slice(0, bytesLen), w, h);
-                ctx.putImageData(imageData, x, y);
+                if(w > 0 && h > 0) {
+                    const bytesLen = w * h * 4;
+                    const imageData = data.length === bytesLen ? new ImageData(data, w, h) : new ImageData(data.slice(0, bytesLen), w, h);
+                    ctx.putImageData(imageData, x, y);
+                }
             } else {
                 errlog(id, "has no graphics context");
                 return;
@@ -351,6 +366,7 @@ function handleBinary(buffer) {
 
         // if as_draw AND there is a notification request - send a notify
         if ((as_draw != 0) && event_notifiers.has("canvas_draw")) {
+            log("notify canvas draw");
             socket.send(JSON.stringify({
                                             'type': 'event',
                                             'element': id,
@@ -615,7 +631,6 @@ function handleJsonCommand(msg) {
                 errlog(msg.eval, ex.toString());
             }
             return;
-            return;
         case 'open':
             window.open(msg.url, msg.view && msg.view.length > 0 ? msg.view : '_blank');
             return;
@@ -623,7 +638,8 @@ function handleJsonCommand(msg) {
             if(msg.element == undefined || msg.element.length == 0) {
                 createElement(null, msg.html_element, msg.new_id);
                 return;
-            } break;
+            }
+            break;
         case 'query':
             switch(msg.query) {
             case 'exists':
@@ -678,6 +694,7 @@ function handleJsonCommand(msg) {
                 el[msg.attribute] = val;              //...and this in some :-D
                 break;
             case 'create':
+                log("create", el, msg.html_element, msg.new_id);
                 createElement(el, msg.html_element, msg.new_id);
                 break;
             case 'remove':

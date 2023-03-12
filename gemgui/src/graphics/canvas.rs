@@ -260,96 +260,103 @@ impl Canvas {
             return;
         }
         
-        if (y_pos + (bitmap.height() as i32) <= 0) || (x_pos + (bitmap.width() as i32) <= 0) {
-            return;
-        }
+        // as we really dunno if bitmap is out of bounds from "bigger size", (without asking canvas size)
+        // we either has to send bitmap extents with every fragment or allow image to be "drawn"
+        // if it is on "smaller size"
+        //if (y_pos + (bitmap.height() as i32) <= 0) || (x_pos + (bitmap.width() as i32) <= 0) {
+        //    return;
+        //}
         
-        let height = if y_pos < 0 {(bitmap.height() as i32 + y_pos) as u32 } else {bitmap.height()};
+       
+       // let height = if y_pos < 0 {(bitmap.height() as i32 + y_pos) as u32 } else {bitmap.height()};
         let y = if y_pos < 0 {-y_pos} else {0} as u32;
         let y_pos = y_pos.max(0) as u32;
 
-        let width = if x_pos < 0 {(bitmap.width() as i32 + x_pos) as u32 } else {bitmap.width()};
+        //let width = if x_pos < 0 {(bitmap.width() as i32 + x_pos) as u32 } else {bitmap.width()};
         let x = if x_pos < 0 {-x_pos} else {0} as u32;
         let x_pos = x_pos.max(0) as u32;
 
         let mut is_last = false;
 
-        debug_assert!(y < bitmap.height());
-        debug_assert!(x < bitmap.width());
+        if y < bitmap.height() && x < bitmap.width() {
 
-        for j in (y..height).step_by(TILE_HEIGHT as usize) {
-            let height = TILE_HEIGHT.min(bitmap.height() - j);
-            if height == 0 {
-                continue;
-            }
-            for i in (x..width).step_by(TILE_WIDTH as usize) {
-                let width = TILE_WIDTH.min(bitmap.width() - i);
-                debug_assert!(!is_last);
-                is_last = (bitmap.height() - j < TILE_HEIGHT) && (bitmap.width() - i < TILE_WIDTH);
+            for j in (y..bitmap.height()).step_by(TILE_HEIGHT as usize) {
+                let height = TILE_HEIGHT.min(bitmap.height() - j);
+                if height == 0 {
+                    continue;
+                }
+                for i in (x..bitmap.width()).step_by(TILE_WIDTH as usize) {
+                    let width = TILE_WIDTH.min(bitmap.width() - i);
+                    debug_assert!(!is_last);
+                    is_last = (bitmap.height() - j < TILE_HEIGHT) && (bitmap.width() - i < TILE_WIDTH);
+                    let header = vec!(
+                        i + x_pos,
+                        j + y_pos,
+                        width,
+                        height,
+                        // figure out if this is the last one if set notification
+                        (as_draw && is_last) as u32
+                    );
+                    let mut vec8: Vec<u8> = vec![];
+                    write_prelude(
+                        &mut vec8,
+                        CANVAS_ID,
+                        self.id(),
+                        width * height,
+                        &header
+                        );    
+                    
+                    for row in j..(j + height) {
+                        let stride = bitmap.slice(i, width, row);
+                        for elem in stride.iter() {
+                        let p = Color::rgba(
+                            Color::r(*elem),
+                            Color::g(*elem),
+                            Color::b(*elem),
+                            Color::a(*elem));
+                        vec8.write_u32::<Endianness>(p).unwrap();
+                        }
+                    }
+                    
+                    write_epilog(
+                        &mut vec8,
+                        self.id(),
+                        &header,
+                        );
+                
+
+                //    assert!(vec8.len() as u32 == ((bitmap.width() - x) * (bitmap.height() - y) + 4) * 4 + 20 + 16, "w:{} h:{} len:{}", i, j, vec8.len()); 
+                    self.element().send_bin(vec8);
+                }
+            } 
+        } else {
+            is_last = true;
+            if as_draw {
                 let header = vec!(
-                    i + x_pos,
-                    j + y_pos,
-                    width,
-                    height,
-                    // figure out if this is the last one if set notification
-                    (as_draw && is_last) as u32
+                    0,0,0,0, is_last as u32
                 );
                 let mut vec8: Vec<u8> = vec![];
                 write_prelude(
                     &mut vec8,
                     CANVAS_ID,
                     self.id(),
-                    width * height,
+                    0,
                     &header
-                    );    
-                
-                for row in j..(j + height) {
-                    let stride = bitmap.slice(i, width, row);
-                    for elem in stride.iter() {
-                       let p = Color::rgba(
-                        Color::r(*elem),
-                        Color::g(*elem),
-                        Color::b(*elem),
-                        Color::a(*elem));
-                       vec8.write_u32::<Endianness>(p).unwrap();
-                    }
-                }
-                
+                    );
                 write_epilog(
                     &mut vec8,
                     self.id(),
                     &header,
                     );
-               
-
-                assert!(vec8.len() as u32 == (width * height + 4) * 4 + 20 + 16, "w:{} h:{} len:{}", i, j, vec8.len()); 
                 self.element().send_bin(vec8);
-            }
+            }                
+        }
+
+        if !is_last {
+            panic!("{} {} {}x{}", x, y, bitmap.width(), bitmap.height());
         }
         
-        if ! is_last {
-            let header = vec!(
-                0,
-                0,
-                width as u32,
-                height as u32,
-                true as u32
-            );
-            let mut vec8: Vec<u8> = vec![];
-            write_prelude(
-                &mut vec8,
-                CANVAS_ID,
-                self.id(),
-                0,
-                &header
-                );
-            write_epilog(
-                &mut vec8,
-                self.id(),
-                &header,
-                );
-            self.element().send_bin(vec8);            
-        }
+    
         
     } 
 
@@ -358,14 +365,14 @@ impl Canvas {
     // Add an image to canvas for drawing
     /// 
     /// See (add_image) [Self::add_image]
-    pub async fn add_image_async<OptCB, CB, Fut>(&self, url: &str, image_added_cb: OptCB) -> Result<String>
+    pub fn add_image_async<OptCB, CB, Fut>(&self, url: &str, image_added_cb: OptCB) -> Result<String>
         where OptCB: Into<Option<CB>>,
         CB: FnOnce(UiRef, String)-> Fut + Send + Clone + 'static,
         Fut:  Future<Output = ()> + Send + 'static {
             let cb = image_added_cb.into();
             match cb {
-                Some(cf) =>  self.add_image(url, UiData::as_sync_fn(cf)).await,
-                _ => self.add_image(url, |_,_|{}).await
+                Some(cf) =>  self.add_image(url, UiData::as_sync_fn(cf)),
+                _ => self.add_image(url, |_,_|{})
             }
         }
 
@@ -388,18 +395,19 @@ impl Canvas {
     /// # Return
     /// 
     /// Image id
-    pub async fn add_image<OptCB, CB>(&self, url: &str, image_added_cb: OptCB) -> Result<String>
+    pub fn add_image<OptCB, CB>(&self, url: &str, image_added_cb: OptCB) -> Result<String>
         where
         CB: FnMut(UiRef, String) + Send + 'static,
         OptCB: Into<Option<CB>> {  // FnOnce or FnMut (or Fn ????)  {
             let name = UiData::random("image");
             let id_name = name.clone();
             let image_element = 
-            self.ui().add_element_with_id(&name, "IMG", self).await?;
+            self.ui().add_element_with_id(&name, "IMG", self)?;
             let cb = image_added_cb.into();
             if cb.is_some() {
                 let mut f = cb.unwrap();
-                image_element.subscribe("load", move |ui, _| f(ui, name.clone()));
+                image_element.subscribe_properties("load",
+                 move |ui, _| f(ui, name.clone()), &["complete"]);
             }
             image_element.set_attribute("style", "display:none");
             image_element.set_attribute("src", url);

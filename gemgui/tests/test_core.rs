@@ -729,7 +729,8 @@ async fn test_resource() {
 async fn add_element() {
     let mut ui = setup();
     ui.on_start_async(move |ui| async move {
-        let el = ui.add_element("P", &ui.root()).await.unwrap();
+        let el = ui.add_element("P", &ui.root()).unwrap();
+        assert!(ui.exists(el.id()).await.unwrap());
         let id = el.id().clone();
         assert!(id != "");
         assert_eq!(ui.element(&id).element_type().await.unwrap(), "p");    
@@ -743,8 +744,9 @@ async fn add_element() {
 async fn add_element_with_id() {
     let mut ui = setup();
     ui.on_start_async(move |ui| async move {
-        let el = ui.add_element_with_id("some_random_id", "br", &ui.root()).await.unwrap();
+        let el = ui.add_element_with_id("some_random_id", "br", &ui.root()).unwrap();
         assert_eq!(el.id(), "some_random_id");
+        assert!(ui.exists(el.id()).await.unwrap());
         assert_eq!(ui.element("some_random_id").element_type().await.unwrap(), "br");    
         ui.exit();
     });
@@ -793,8 +795,9 @@ async fn dynamic_exits() {
     ui.set_logging(true);
     ui.on_start_async(move |ui| async move {
         assert!(!ui.exists("some_random_id").await.unwrap());
-        let el = ui.add_element_with_id("some_random_id", "br", &ui.root()).await.unwrap();
+        let el = ui.add_element_with_id("some_random_id", "br", &ui.root()).unwrap();
         assert_eq!(el.id(), "some_random_id");
+        assert!(ui.exists(el.id()).await.unwrap());
         tokio::time::sleep(Duration::from_millis(1000)).await;
         let has_it = ui.exists("some_random_id").await.unwrap();
         assert!(has_it);

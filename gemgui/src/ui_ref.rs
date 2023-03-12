@@ -1,4 +1,3 @@
-use std::time::Duration;
 
 use crate::Result;
 use crate::GemGuiError;
@@ -124,7 +123,7 @@ impl UiRef {
     /// # use gemgui::ui_ref::UiRef;
     /// # use crate::gemgui::ui::Ui;
     /// async fn some_function(ui: UiRef) {
-    ///     let el = ui.add_element("div", &ui.root()).await.unwrap();
+    ///     let el = ui.add_element("div", &ui.root()).unwrap();
     ///     el.set_html("foo");
     /// }
     /// ```
@@ -133,8 +132,8 @@ impl UiRef {
     /// `html_element` - refer to HTML id
     /// 
     /// `parent` - parent of element
-    pub async fn add_element(&self, html_element: &str, parent: &Element) -> Result<Element> { 
-        self.add_element_with_id(&UiData::random_element_id(&self.ui), html_element, parent).await
+    pub fn add_element(&self, html_element: &str, parent: &Element) -> Result<Element> { 
+        self.add_element_with_id(&UiData::random_element_id(&self.ui), html_element, parent)
     }
 
     /// Create a new element
@@ -150,9 +149,9 @@ impl UiRef {
     /// `parent` - parent of element
     /// 
     /// 
-    pub async fn add_element_with_id(&self, id: &str, html_element: &str, parent: &Element) -> Result<Element> { 
+    pub fn add_element_with_id(&self, id: &str, html_element: &str, parent: &Element) -> Result<Element> { 
 
-        if id == ROOT_ID || self.contains_id(id)/*  ||  self.exists(id).await? */{
+        if id == ROOT_ID || self.contains_id(id) {
             return GemGuiError::error("Bad id");
         } 
 
@@ -161,26 +160,8 @@ impl UiRef {
         let ui = self.ui.clone();
         let element = Element::construct(id.to_string(), UiData::sender(&ui), ui);
         element.create(html_element, parent);
-
-        let mut exists = false;
-
-        for _i in 0..10 {
-            if self.exists(id).await? {
-                exists = true;
-                break;
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
-        }
-
-        if !exists {
-            return GemGuiError::error("Element state unclear");
-        }
         
-
         Ok(element)
-
-
-
     }
     
 
