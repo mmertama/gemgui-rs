@@ -1,5 +1,4 @@
 use std::path::Path;
-use cargo_metadata;
 
 
 #[allow(dead_code)]
@@ -11,7 +10,7 @@ fn html_metadata(toml_path: &str)->Option<String> {
     .exec()  {
         Ok(o) => Some(o),
         Err(e) => {
-            eprintln!("Metadata error {}", e);
+            eprintln!("Metadata error {e}");
             None
         }
     }?;
@@ -138,5 +137,5 @@ where PathStr: AsRef<Path> {
     }
     lines.push("];".to_string());
     println!("{} --> {:?}", lines.len(), lines);
-    std::fs::write(&dest_path, lines.join("\n")).unwrap();
+    std::fs::write(dest_path, lines.join("\n")).unwrap();
 }

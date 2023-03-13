@@ -30,7 +30,7 @@ fn align(a: u32) -> u32{
 
 fn write_prelude(vec8: &mut Vec<u8>, data_type: u32, owner: &str, sz: u32, header: &Vec<u32>) {
         vec8.write_u32::<Endianness>(data_type).unwrap();
-        vec8.write_u32::<Endianness>(sz as u32).unwrap();
+        vec8.write_u32::<Endianness>(sz).unwrap();
         vec8.write_u32::<Endianness>(align(owner.len() as u32)).unwrap();
         vec8.write_u32::<Endianness>(align(header.len() as u32)).unwrap();
 }
@@ -404,8 +404,7 @@ impl Canvas {
             let image_element = 
             self.ui().add_element_with_id(&name, "IMG", self)?;
             let cb = image_added_cb.into();
-            if cb.is_some() {
-                let mut f = cb.unwrap();
+            if let Some(mut f) = cb {
                 image_element.subscribe_properties("load",
                  move |ui, _| f(ui, name.clone()), &["complete"]);
             }

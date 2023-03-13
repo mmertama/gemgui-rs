@@ -314,7 +314,7 @@ impl fmt::Debug for Gui {
 
         let ui = self.ui.lock().unwrap();
         let empty: (String, Vec<String>) = ("".to_string(), vec!());
-        let (cmd, params) = if ! self.start_cmd.is_none() {self.start_cmd.as_ref().unwrap()} else {&empty};
+        let (cmd, params) = if self.start_cmd.is_some() {self.start_cmd.as_ref().unwrap()} else {&empty};
         f.debug_struct("Gui")
          .field("ui", &ui)
          .field("server", &self.server)
@@ -341,7 +341,7 @@ impl Gui {
 
     pub fn new(user_map : Filemap, index_html: &str, port: u16) -> Result<Self> {
         if ! port_scanner::local_port_available(port) {
-            return Err(GemGuiError::Err(format!("Port {} is not available", port)));
+            return Err(GemGuiError::Err(format!("Port {port} is not available")));
         }
         let mut filemap = user_map;
         for resource in RESOURCES {
@@ -354,7 +354,7 @@ impl Gui {
         }
         
         if ! filemap.contains_key(index_html) {
-            return Err(GemGuiError::Err(format!("Error {}, not found", index_html)));
+            return Err(GemGuiError::Err(format!("Error {index_html}, not found")));
         }
 
         let filemap = Arc::new(Mutex::new(filemap));
@@ -390,9 +390,7 @@ impl Gui {
     }
 
     fn run_process(cmd: (String, Vec<String>), index_html: String, port: u16) -> bool {
-        let cmd_line : String = format!("http://127.0.0.1:{}/{}",
-            port,
-            index_html);
+        let cmd_line : String = format!("http://127.0.0.1:{port}/{index_html}");
        
         let output = Command::new(&cmd.0)
             .args(&cmd.1)
@@ -465,7 +463,7 @@ impl Gui {
                             }
                         }
                         Err(e) => {
-                            eprintln!("Invalid response {}", e);
+                            eprintln!("Invalid response {e}");
                         }
                     }
                 },
@@ -484,13 +482,13 @@ impl Gui {
             Some(f) => f(UiRef::new(self.ui.clone()), msg.to_string()),
             None => (),
         }
-        eprintln!("Ui Error {:#?}", msg)
+        eprintln!("Ui Error {msg:#?}")
     }
 
     fn timer_handler(&self, timer_id: u32) {
         let handler = self.get_timer_callback(&timer_id);
         if handler.is_none() {
-            eprintln!("Handler not found for {}", timer_id);
+            eprintln!("Handler not found for {timer_id}");
             return;
         }
         let rc = handler.unwrap();
@@ -528,10 +526,10 @@ impl Gui {
         match tx {
             Some(r) => {
                 let value = js[query_value].take();
-                r.send(value).unwrap_or_else(|e| {panic!("Cannot send query: {}", e)});
+                r.send(value).unwrap_or_else(|e| {panic!("Cannot send query: {e}")});
             },
             None =>  {
-                eprintln!("No query listener for {}", query_id);
+                eprintln!("No query listener for {query_id}");
             }
         };
     }

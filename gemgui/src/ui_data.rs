@@ -130,12 +130,12 @@ impl UiData {
         let ui = ui.lock().unwrap();
         let mut fm = ui.filemap.lock().unwrap();
         let mut count = 1;
-        let mut name = format!("{}.{}", basename, ext);
+        let mut name = format!("{basename}.{ext}");
         loop  {
             if ! fm.contains_key(&name) {
                 break;
             }
-            name = format!("{}.{}.{}", basename, count, ext);
+            name = format!("{basename}.{count}.{ext}");
             count += 1;
         }
         fm.insert(name.to_string(), content);
@@ -464,7 +464,7 @@ impl UiData {
                 Ok(())                                   
             },
             None => {
-                Err(GemGuiError::Err(format!("Warning timer {} not found", id)))
+                Err(GemGuiError::Err(format!("Warning timer {id} not found")))
             }
         }
     }

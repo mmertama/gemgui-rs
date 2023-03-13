@@ -350,7 +350,7 @@ struct JSMessageRx {
 
 pub (crate) fn value_to_string_list(value: JSType) -> Option<Vec<String>> {
     if ! value.is_array() {
-        eprintln!("Values is not an array {}", value);
+        eprintln!("Values is not an array {value}");
         return None;
        }
     let array = value.as_array().unwrap();
@@ -359,7 +359,7 @@ pub (crate) fn value_to_string_list(value: JSType) -> Option<Vec<String>> {
         if v.is_string() {
            result.push(String::from(v.as_str().unwrap())); 
         } else {
-            eprintln!("item not understood ... todo {}", v);
+            eprintln!("item not understood ... todo {v}");
             return None;
         }
     }   
@@ -368,7 +368,7 @@ pub (crate) fn value_to_string_list(value: JSType) -> Option<Vec<String>> {
 
 pub (crate) fn value_to_string_map(value: JSType) -> Option<HashMap<String, String>> {
    if ! value.is_object() {
-    eprintln!("Values is not an object {}", value);
+    eprintln!("Values is not an object {value}");
     return None;
    }
    let obj = value.as_object().unwrap();
@@ -388,7 +388,7 @@ pub (crate) fn value_to_string_map(value: JSType) -> Option<HashMap<String, Stri
 
 pub (crate) fn value_to_string(value: JSType) -> Option<String> {
     if ! value.is_string() {
-        eprintln!("Values is not an string {}", value);
+        eprintln!("Values is not an string {value}");
         return None;
        }
     Some(String::from(value.as_str().unwrap()))   
@@ -406,7 +406,7 @@ impl Error for GemGuiError {}
 impl fmt::Display for GemGuiError {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Self::Err(e) => write!(f, "GemGui error: {}", e),
+            Self::Err(e) => write!(f, "GemGui error: {e}"),
         }
     }
 }
@@ -573,7 +573,7 @@ pub fn default_error(ui: UiRef, err_msg: String) {
         Ok(json) => {
             eprintln!("Error: {}\nElement: {}\nTrace: {}\n", json["error"], json["element"], json["trace"]);
         },
-        _ => eprintln!("{}", err_msg)
+        _ => eprintln!("{err_msg}")
     }
    ui.exit(); // todo! with error code
 }

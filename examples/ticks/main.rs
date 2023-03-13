@@ -21,18 +21,18 @@ async fn main() -> Result<(), GemGuiError> {
  
     ui.periodic(Duration::from_millis(1000), move |_,_| {
       count0 += 1;
-      counter0.set_html(&format!("{}", count0));
+      counter0.set_html(&format!("{count0}"));
     });
  
     ui.periodic(Duration::from_millis(100), move |uu, _| {
       count1 += 1;
-      counter1.set_html(&format!("{}", count1));
+      counter1.set_html(&format!("{count1}"));
         if count1 == 100  {
             uu.exit();
         }
     });
     let (ver, maj, min) = gemgui::version();
-    ui.element("ver").set_html(&format!("{}.{}.{}", ver, maj,  min));
+    ui.element("ver").set_html(&format!("{ver}.{maj}.{min}"));
     ui.run().await
 }
 

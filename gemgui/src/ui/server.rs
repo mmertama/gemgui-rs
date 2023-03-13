@@ -73,11 +73,11 @@ impl MsgTx {
 // sends message from element to socket server
 impl MsgTx {
     async fn do_send(tx: BroadcastSender<Message>, msg: String) {
-        tx.send(Message::text(msg)).unwrap_or_else(|e|{eprintln!("Fatal {}", e); 0});
+        tx.send(Message::text(msg)).unwrap_or_else(|e|{eprintln!("Fatal {e}"); 0});
     }
     
     async fn do_send_bin(tx: BroadcastSender<Message>, msg: Vec<u8>) {
-        tx.send(Message::binary(msg)).unwrap_or_else(|e|{eprintln!("Fatal {}", e); 0});
+        tx.send(Message::binary(msg)).unwrap_or_else(|e|{eprintln!("Fatal {e}"); 0});
     }  
 }
 
@@ -100,7 +100,7 @@ async fn wait_early_messages(msg_queue: MessageBuffer, mut rx: BroadcastReceiver
                 }
             }
             Err(e) => {
-                eprintln!("Cannot read {}", e);
+                eprintln!("Cannot read {e}");
                 break;
             }
         }
@@ -164,10 +164,10 @@ impl WSServer {
             ..Default::default()
         };
         let json = serde_json::to_string(&msg).unwrap();
-        sender.send(Message::text(json)).await.unwrap_or_else(|e| eprintln!("Cannot send {}", e));
+        sender.send(Message::text(json)).await.unwrap_or_else(|e| eprintln!("Cannot send {e}"));
         // binary messages cannot sent as batch 
         for item in msg_bin {
-            sender.send(Message::binary(item)).await.unwrap_or_else(|e| eprintln!("Cannot send {}", e));
+            sender.send(Message::binary(item)).await.unwrap_or_else(|e| eprintln!("Cannot send {e}"));
         }
     }
 
@@ -206,7 +206,7 @@ impl WSServer {
                             }
                         },
                         Err(e) => {
-                            eprintln!("error reading message on websocket: {}", e);
+                            eprintln!("error reading message on websocket: {e}");
                         }
                     };   
                 },
@@ -221,11 +221,11 @@ impl WSServer {
                             } else if do_buffer {
                                 write_to_buffer(msg, &buffer);    
                             } else {
-                                sender.send(msg).await.unwrap_or_else(|e| eprintln!("Cannot send {}", e));
+                                sender.send(msg).await.unwrap_or_else(|e| eprintln!("Cannot send {e}"));
                             }
                         },
                         Err(e) => {
-                            eprintln!("error reading message from element: {}", e);
+                            eprintln!("error reading message from element: {e}");
                         }
                     };   
                 },   
@@ -249,7 +249,7 @@ impl WSServer {
         .map(move |path: warp::path::Tail|  {
             let name = path.as_str();
             let file_map = fm.lock().unwrap();
-            assert!(file_map.contains_key(name), "Request not found: {:#?}", name);
+            assert!(file_map.contains_key(name), "Request not found: {name:#?}");
 
             let mime = Self::file_to_mime(name).unwrap_or("octect-stream");
             

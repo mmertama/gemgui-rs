@@ -19,8 +19,8 @@ async fn amain(ui: UiRef) {
 
   let source = Canvas::from(ui.element("source"));
   let source_rect = source.rect::<f64>().await.unwrap();
-  let source_x = source_rect.x() as f64;
-  let source_y = source_rect.y() as f64;
+  let source_x = source_rect.x();
+  let source_y = source_rect.y();
 
   transformer.resize(source_rect.width() as u32, source_rect.height() as u32).unwrap(); //  transform to canvas size
   source.draw_bitmap(&transformer); // draw on screen
@@ -50,7 +50,7 @@ async fn amain(ui: UiRef) {
   let mouse_pos =  move |event: Event| -> Option<(f64, f64)> {
     let x = event.property_str("clientX").unwrap().parse::<i32>().unwrap() as f64 - source_x;
     let y = event.property_str("clientY").unwrap().parse::<i32>().unwrap()  as f64 - source_y;
-    if x >= 0.0  && y >= 0.0 && x < source_rect.width() as f64 && y < source_rect.height() as f64 {
+    if x >= 0.0  && y >= 0.0 && x < source_rect.width() && y < source_rect.height()  {
       Some((x,  y))
     } else {
       None

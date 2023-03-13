@@ -11,7 +11,7 @@ async fn main() -> Result<(), GemGuiError> {
     println!("The current directory is {}", path.display());
     path.push("examples/hello_load/gui");
     if ! path.is_dir() {
-        eprintln!("Error: path {:#?} not found", path);
+        eprintln!("Error: path {path:#?} not found");
         std::process::exit(1);
     }
     let fm = gemgui::filemap_from_dir(&path).unwrap();

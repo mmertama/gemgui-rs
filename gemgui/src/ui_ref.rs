@@ -51,7 +51,7 @@ impl UiRef {
         if value.is_number() {
             Ok(value.as_f64().unwrap() as f32)
         } else {
-            Err(GemGuiError::Err(format!("Not a number {}", value)))
+            Err(GemGuiError::Err(format!("Not a number {value}")))
         } 
     }
 
@@ -65,7 +65,7 @@ impl UiRef {
         if value.is_boolean() {
             Ok(value.as_bool().unwrap())
         } else {
-            GemGuiError::error(&format!("Not a bool {}", value))
+            GemGuiError::error(&format!("Not a bool {value}"))
         } 
     }
 
@@ -186,11 +186,11 @@ impl UiRef {
         // spawn an syncrnous wait and wait that async
         let value = tokio::task::spawn_blocking(move || {
             receiver.blocking_recv()
-        }).await.unwrap_or_else(|e| {panic!("Query spawn blocking {:#?}", e)});
+        }).await.unwrap_or_else(|e| {panic!("Query spawn blocking {e:#?}")});
 
         match value {
             Ok(v) => Ok(v),
-            Err(e) => Err(GemGuiError::Err(format!("Query error {}", e)))
+            Err(e) => Err(GemGuiError::Err(format!("Query error {e}")))
         }        
     }
 

@@ -156,10 +156,10 @@ impl Bitmap {
             Ok(reader) => {
                 match reader.decode() {
                     Ok(image)  => Self::from_image(image),
-                    Err(e) => Err(GemGuiError::Err(format!("Bad format, {}", e))),
+                    Err(e) => Err(GemGuiError::Err(format!("Bad format, {e}"))),
                 }
             },
-            Err(e) => Err(GemGuiError::Err(format!("Image file not found: {}, {}", filename, e))),
+            Err(e) => Err(GemGuiError::Err(format!("Image file not found: {filename}, {e}"))),
         }
     }
 
@@ -178,10 +178,10 @@ impl Bitmap {
             Ok(reader) => {
                 match reader.decode() {
                     Ok(image)  => Self::from_image(image),
-                    Err(e) => Err(GemGuiError::Err(format!("Bad format, {}", e))),
+                    Err(e) => Err(GemGuiError::Err(format!("Bad format, {e}"))),
                 }
             },
-            Err(e) =>   Err(GemGuiError::Err(format!("Expected an image format, {:#?}", e))),
+            Err(e) =>   Err(GemGuiError::Err(format!("Expected an image format, {e:#?}"))),
         }
     }
 
@@ -359,7 +359,7 @@ impl Bitmap {
                     (r + ro) / 0xFF,
                     (g + go) / 0xFF,
                     (b + bo) / 0xFF,
-                    a as u32);
+                    a );
 
                 self.put(x + i, y + j, pixel);
             }
@@ -374,11 +374,11 @@ impl Bitmap {
     /// - various format are supported.
     pub fn save<FileName>(&self, filename: FileName) -> Result<()> 
     where FileName: AsRef<Path> {
-        let mut rgba: RgbaImage = ImageBuffer::new(self.width as u32, self.height as u32);
+        let mut rgba: RgbaImage = ImageBuffer::new(self.width, self.height);
         for x in 0..self.width {
             for y in 0..self.height {
                 let p = self.get(x, y);
-                rgba.put_pixel(x as u32, y as u32, Rgba::from([
+                rgba.put_pixel(x, y, Rgba::from([
                     Color::r(p),
                     Color::g(p),
                     Color::b(p),
@@ -387,7 +387,7 @@ impl Bitmap {
         }
         match rgba.save(filename) {
             Ok(_) => Ok(()),
-            Err(e) => Err(GemGuiError::Err(format!("{}", e)))
+            Err(e) => Err(GemGuiError::Err(format!("{e}")))
         }
     }
 
