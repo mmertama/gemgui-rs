@@ -489,8 +489,8 @@ impl Canvas {
     /// # Arguments
     /// 
     /// `rect` - erase area
-    pub fn erase(&self, rect: Rect<usize>) {
-        let f_rect = Rect::<f32>{
+    pub fn erase(&self, rect: Rect<u32>) {
+        let f_rect = Rect::<f32> {
             x: rect.x as f32,
             y:  rect.y as f32,
             width: rect.width as f32,
