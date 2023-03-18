@@ -37,6 +37,7 @@ pub (crate) fn setup () -> gemgui::ui::Gui {
             let mut params = cmd_params.clone();
             let mut chrome_params = chrome::headless_params(false);
             params.append(&mut chrome_params);
+            params.push(ui.address());
             ui.set_gui_command_line(&cmd, &params);
             }
         ui

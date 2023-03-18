@@ -13,6 +13,8 @@ include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 async fn main() -> Result<(), GemGuiError> {
     let fm = gemgui::filemap_from(RESOURCES);
     let mut ui = Gui::new(fm, "hello.html", gemgui::next_free_port(30000u16)).unwrap();
+    // use python ui
+    ui.set_python_gui("Basic", 500, 600, &[("debug", "True")], 0);
     ui.set_logging(true);
     let canvas = Canvas::new(&ui.element("canvas"));
     let bmp = Bitmap::rect(100, 100, Color::CYAN);
@@ -23,6 +25,7 @@ async fn main() -> Result<(), GemGuiError> {
       canvas.on_draw(|_|{
         println!("Do Nothing");
       }, DrawNotify::NoKick);
+      println!("Do Draw");
     }, DrawNotify::NoKick);
     ui.on_start_async(|_| async move {println!("on start")});
     ui.element("exit_button").subscribe(event::CLICK, |ui, _| ui.exit());

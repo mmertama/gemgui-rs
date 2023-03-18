@@ -17,6 +17,7 @@ use crate::ui::TimerCallback;
 use crate::ui::TimerId;
 use crate::ui::ChannelSender;
 use crate::JSMessageTx;
+use crate::ui::server::ENTERED;
 use crate::ui_ref::UiRef;
 use crate::Result;
 
@@ -141,7 +142,11 @@ impl UiData {
         fm.insert(name.to_string(), content);
         Ok(name)
     }
-    
+     
+    pub (crate) fn entered(ui: &UiDataRef) {
+        let ui = ui.lock().unwrap();
+        ui.tx.send(ENTERED.to_string());
+    }
 
     pub (crate) fn batch_begin(ui: &UiDataRef) {
         let ui = ui.lock().unwrap();

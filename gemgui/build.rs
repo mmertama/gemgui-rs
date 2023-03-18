@@ -3,7 +3,9 @@ include!(concat!(env!("CARGO_MANIFEST_DIR"), "/src/respack.rs"));
 
 fn main() {
     println!("cargo:rerun-if-changed=build.rs"); 
-    const GEMGUI_PATH: &str = "js/gemgui.js";
+    const GEMGUI_PATH: &str = "res/gemgui.js";
+    const PYGUI_PATH: &str = "res/pyclient.py";
     println!("cargo:rerun-if-changed={GEMGUI_PATH}");
-    pack("js", false);
+    println!("cargo:rerun-if-changed={PYGUI_PATH}");
+    pack("res", false);
     }

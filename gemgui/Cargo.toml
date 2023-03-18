@@ -1,6 +1,6 @@
 [package]
 name = "gemgui"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2021"
 authors = ["Markus Mertama"]
 license = "MIT"
@@ -36,6 +36,7 @@ phf = { version = "0.11", features = ["macros"] }
 substring = "1.4.5"
 byteorder = "1.4.3"
 image = "0.24.5"
+which = "4.4.0"
 
 # these for respack
 cargo_metadata = "0.15.1"

@@ -83,7 +83,7 @@ impl MsgTx {
 
 // receive message from element
 
-static ENTERED: &str = "entered";
+pub (crate) static ENTERED: &str = "entered";
 
 async fn wait_early_messages(msg_queue: MessageBuffer, mut rx: BroadcastReceiver<Message>) {
     let mut entered = false;
@@ -135,6 +135,10 @@ impl WSServer {
         MsgTx{tx: self.client_tx.clone()}
     }
 
+    pub (crate) fn port(&self) -> u16 {
+        self.port
+    }
+
     // Mutex protected data accessor, we cannot use await in iteration (for) loop
     // as then mutex is locked and async-send cannot happen
     // Just clone data from index 
@@ -180,10 +184,6 @@ impl WSServer {
         // sender - diff clients connected to this server
         let (mut sender, mut receiver) = websocket.split();
 
-        // flush buffer before entering a loop
-        client_tx.send(Message::text(ENTERED)).unwrap();
-        Self::send_buffered(&mut sender, &buffer).await;
-
         let mut do_buffer = false; // at start we buffer
 
         let mut client_rx = client_tx.subscribe();
@@ -200,9 +200,11 @@ impl WSServer {
                                 // tell ui.rs to leave the loop - Json constant...
                                 let close = String::from("{\"type\": \"close_request\"}"); 
                                 subscription_sender.send(close).await.unwrap();
-                                break;   
+                                break;  
+                            } else if msg.is_ping() {
+                                // wont response to pong, underneath shoyld do it   
                             } else {
-                                eprintln!("Unexpected message type");
+                                eprintln!("Unexpected message type: {msg:#?}");
                             }
                         },
                         Err(e) => {
@@ -213,7 +215,9 @@ impl WSServer {
                 cl_msg = client_rx.recv() => {
                      match cl_msg {
                         Ok(msg) => {
-                            if msg.is_text() && msg.to_str().unwrap() == BATCH_BEGIN  {
+                            if msg.is_text() && msg.to_str().unwrap() == ENTERED {
+                                Self::send_buffered(&mut sender, &buffer).await;
+                            } else if msg.is_text() && msg.to_str().unwrap() == BATCH_BEGIN  {
                                 do_buffer = true;
                             } else if msg.is_text() && msg.to_str().unwrap() == BATCH_END  {
                                 do_buffer = true;

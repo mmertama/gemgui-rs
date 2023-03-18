@@ -64,14 +64,7 @@ pub (crate) static BATCH_END: &str = "batch_end";
 // ** Maybe not the best way to do this as free and use wont be
 // atomic and hence use of port may fail
 
-// todo! 
-// Documents
-// Some example snippets
-// Widgets example
-// Coverage
-// Perf test
-// Lint
-// Error types (see RUST API Guide)
+
 
 /// Target enum
  pub enum Target {
@@ -86,6 +79,31 @@ pub (crate) static BATCH_END: &str = "batch_end";
     /// Framename Opens the linked document in the named iframe
     FrameName(String),	
 }
+
+/// Py Ui Flags See [set_python_gui] (Gui::set_python_gui)
+pub mod py_ui_flags {
+    /// See pywebview documentation 
+    pub const NORESIZE : u32 = 0x1;
+     /// See pywebview documentation 
+    pub const FULLSCREEN : u32 = 0x2;
+    /// See pywebview documentation 
+    pub const HIDDEN : u32 = 0x4;
+    /// See pywebview documentation 
+    pub const FRAMELESS : u32 = 0x8;
+    /// See pywebview documentation 
+    pub const MINIMIZED : u32 = 0x10;
+    /// See pywebview documentation 
+    pub const ONTOP : u32 = 0x20;
+    /// See pywebview documentation 
+    pub const CONFIRMCLOSE : u32 = 0x40;
+    /// See pywebview documentation 
+    pub const TEXTSELECT : u32 = 0x80;
+    /// See pywebview documentation 
+    pub const EASYDRAG : u32 = 0x100;
+    /// See pywebview documentation 
+    pub const TRANSPARENT : u32 = 0x200;
+}
+
 
 impl Target {
     pub (crate) fn value(&self) -> &str {
@@ -262,7 +280,7 @@ pub trait Ui : private::UserInterface {
    
     /// Periodic timer
     /// 
-     /// See [periodic](Self::periodic)
+    /// See [periodic](Self::periodic)
     fn periodic<CB>(&self, period: Duration, callback: CB) -> TimerId
     where CB: FnMut(UiRef, TimerId) + Send + 'static {
         UiData::periodic(self.ui(), period, callback)   
@@ -373,7 +391,7 @@ impl Gui {
     
     );
 
-        let start_cmd = utils::html_file_launch_cmd();
+       let start_cmd = None;
 
         Ok(Gui{
             ui: Arc::new(Mutex::new(ui)),
@@ -389,21 +407,24 @@ impl Gui {
         })
     }
 
-    fn run_process(cmd: (String, Vec<String>), index_html: String, port: u16) -> bool {
-        let cmd_line : String = format!("http://127.0.0.1:{port}/{index_html}");
-       
+    /// URL of Ui
+    pub fn address(&self) -> String {
+        format!("http://127.0.0.1:{}/{}", self.server.port(), self.index_html)
+    }
+
+    fn run_process(cmd: (String, Vec<String>)) -> bool {
+   
         let output = Command::new(&cmd.0)
             .args(&cmd.1)
-            .arg(&cmd_line)
             .spawn();
 
         match output {
             Ok(_child) => {true}, // here we get handle to spawned UI - not used now as exit is done nicely
             Err(e) => {
                 if cmd.1.is_empty() {
-                    eprintln!("Error while spawning call:'{}' target:'{}' error:{}", cmd.0, cmd_line, e);
+                    eprintln!("Error while spawning call:'{}' error:{} - URL is missing!", cmd.0, e);
                 } else {
-                    eprintln!("Error while spawning call:'{}' params:'{:#?}' target:'{}' error:{}", cmd.0, cmd.1, cmd_line, e);
+                    eprintln!("Error while spawning call:'{}' params:'{:#?}' error:{}", cmd.0, cmd.1, e);
                 }
                 false
             }
@@ -425,15 +446,69 @@ impl Gui {
     }
 
 
+    /// Set python (pywebview) UI
+    /// 
+    /// # Arguments
+    /// `title` - window title
+    /// `width` - window width
+    /// `height` - window height
+    /// `python_parameters` - parameters passed to pywebview e.g "{"debug", true}"
+    /// `flags` - See [py_ui_flags](py_ui_flags)
+    pub fn set_python_gui(&mut self,
+        title: &str,
+        width:u32,
+        height: u32,
+        python_parameters: &[(&str, &str)],
+        flags: u32) -> bool {
+            let py = utils::python3();
+            if py.is_none() {
+                return false;
+            }
+
+            let mut py_pa = Vec::new();
+
+            //if let Some(python_parameters) = python_parameters {
+                for (k, v) in python_parameters.iter() {
+                    py_pa.push(format!("{k}={v}"));
+                }
+            //}
+
+            let py_src = RESOURCES.iter().find(|r| r.0 == "pyclient.py").unwrap().1;
+            let py_src = base64::decode(py_src).unwrap();
+            let py_src = String::from_utf8_lossy(&py_src);
+
+            let params = vec!(
+                "-c".to_string(),
+                format!("{py_src}"),
+                format!("--gempyre-url={}", self.address()),
+                format!("--gempyre-width={width}"),
+                format!("--gempyre-height={height}"),
+                format!("--gempyre-title={title}"),
+                format!("--gempyre-extra={}", py_pa.join(";")), 
+                format!("--gempyre-flags={flags}"));
+            let path = py.unwrap().to_str().unwrap().to_string();
+
+            self.set_gui_command_line(&path, &params);
+            true
+        }
+
+
     /// Start event loop
     pub async fn run(&mut self) -> Result<()> {
         let cmd = match &self.start_cmd {
             Some(v) => v.clone(),
-            None => return GemGuiError::error("Cannot find a default application"),
+            None =>  {
+                let start_cmd = utils::html_file_launch_cmd();
+                if start_cmd.is_none() {
+                    return GemGuiError::error("Cannot find a default application");
+                }
+                let mut start_cmd = start_cmd.unwrap();
+                start_cmd.1.push(self.address());
+                start_cmd
+            },
         };
 
-        let index_html = self.index_html.clone(); // clone to closure
-        let on_start = move |port| {Self::run_process(cmd, index_html, port)};
+        let on_start = move |_| {Self::run_process(cmd)};
         let server_wait = self.start_server(on_start);
         if server_wait.is_none() {
             return GemGuiError::error("Starting server failed");
@@ -453,12 +528,17 @@ impl Gui {
                 match serde_json::from_str::<JSMessageRx>(&msg) {
                         Ok(m) => {
                             match m._type.as_str()  {
-                                "keepalive" => (), 
+                                "keepalive" => {
+                                    println!("keep alive");
+                                }, 
                                 "uiready" => self.ready_handler(),
-                                "close_request"  => break,    
+                                "close_request"  => { 
+                                    self.exit(); // send exit to all windows - then go
+                                    break; },  
                                 "event" => self.event_handler(m),
                                 "query" => self.query_handler(&msg),
                                 "error" => self.error_handler(&msg),
+                                "extensionready" => println!("Extension ready"),
                                 _ => panic!("Handler not implemented for {}", m._type)
                             }
                         }
@@ -539,6 +619,7 @@ impl Gui {
             Some(cb) => cb(UiRef::new(self.ui.clone())),
             None => (),
         };
+        UiData::entered(&self.ui);
         UiData::set_started(&self.ui);
         self.on_start_notifee.send(State::Running).unwrap_or_else(|_| panic!("Cannot set ready"));
     }

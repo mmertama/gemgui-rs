@@ -732,7 +732,7 @@ socket.onopen = function(event) {
     setInterval(function() {
         if(socket.readyState === 1)
             socket.send(JSON.stringify({'type': 'keepalive'}));
-    }, 10000); //decreased to help more intensive cal app messages (read mandelbrot) get passed
+    }, 15 * 1000); //decreased to help more intensive cal app messages (read mandelbrot) get passed
     socket.send(JSON.stringify({'type': 'uiready'}));
 };
 
