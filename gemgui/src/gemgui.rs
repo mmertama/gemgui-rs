@@ -514,6 +514,42 @@ pub fn wait_free_port(port: u16, max_wait: Duration) -> bool {
     true
 }
 
+
+    fn create_application<CB, Fut, Create>(filemap: Filemap, index_html: &str, port: u16, application_cb: CB, mut on_create: Create)  -> Result<()> 
+    where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
+        Fut: Future<Output = ()> + Send + 'static,
+        Create: FnMut(&mut Gui) {
+        debug_assert!(filemap.contains_key(index_html));    
+        let result: Arc<Mutex<Option<GemGuiError>>> = Arc::new(Mutex::new(None));
+            tokio::runtime::Builder::new_multi_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(async {
+                let ui  = Gui::new(filemap, index_html, port);
+                if ui.is_err() {
+                    let mut r = result.lock().unwrap();
+                    *r = ui.err();
+                    return;
+                }
+                let mut ui = ui.unwrap();
+                
+                on_create(&mut ui);
+                
+                ui.on_start_async(application_cb);
+                let rr = ui.run().await;
+                if rr.is_err() {
+                    let mut r = result.lock().unwrap();
+                    *r = rr.err();
+                }    
+            });
+            let r = result.lock().unwrap();
+            match r.clone() {
+                None => Ok(()),
+                Some(e) => Err(e), 
+            }
+        }
+
 /// Convenience to create a runtime 
 /// 
 /// # Arguments
@@ -532,33 +568,24 @@ pub fn wait_free_port(port: u16, max_wait: Duration) -> bool {
 pub fn application<CB, Fut>(filemap: Filemap, index_html: &str, port: u16, application_cb: CB)  -> Result<()> 
 where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
     Fut: Future<Output = ()> + Send + 'static {
-    debug_assert!(filemap.contains_key(index_html));    
-    let result: Arc<Mutex<Option<GemGuiError>>> = Arc::new(Mutex::new(None));
-        tokio::runtime::Builder::new_multi_thread()
-        .enable_all()
-        .build()
-        .unwrap()
-        .block_on(async {
-            let ui  = Gui::new(filemap, index_html, port);
-            if ui.is_err() {
-                let mut r = result.lock().unwrap();
-                *r = ui.err();
-                return;
-            }
-            let mut ui = ui.unwrap();
-            ui.on_start_async(application_cb);
-            let rr = ui.run().await;
-            if rr.is_err() {
-                let mut r = result.lock().unwrap();
-                *r = rr.err();
-            }    
-        });
-        let r = result.lock().unwrap();
-        match r.clone() {
-            None => Ok(()),
-            Some(e) => Err(e), 
-        }
+        create_application(filemap, index_html, port, application_cb, |_|{})
     }
+
+    pub fn window_application<CB, Fut>(
+        filemap: Filemap,
+        index_html: &str,
+        port: u16,
+        application_cb: CB,
+        title: &str,
+        width:u32,
+        height: u32,
+        python_parameters: &[(&str, &str)],
+        flags: u32)  -> Result<()> 
+    where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
+        Fut: Future<Output = ()> + Send + 'static {
+            create_application(filemap, index_html, port, application_cb, |ui| {
+                ui.set_python_gui(title, width, height, python_parameters, flags);})
+        }
 
 
 /// Default error function
