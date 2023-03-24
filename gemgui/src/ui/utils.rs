@@ -57,3 +57,7 @@ pub (crate) fn python3() -> Option<PathBuf>  {
     }
     Some(py.unwrap())
 }
+
+pub (crate) fn type_of<T>(_: &T) -> String {
+    format!("{}", std::any::type_name::<T>())
+}

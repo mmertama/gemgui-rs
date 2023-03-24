@@ -22,7 +22,7 @@ minifier = "0.2.2"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
-warp = "0.3"
+warp = "0.3.3"
 futures = "0.3"
 base64 = "0.13"
 serde = { version = "1", features = ["derive"] }

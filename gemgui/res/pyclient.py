@@ -83,6 +83,10 @@ def on_show(window, host, port):
                 if obj['type'] == 'exit_request' or obj['type'] == 'close_request':
                     window_destroyed = True
                     window.destroy()
+                    #ws.close()
+                    # loop.stop()
+                    #return
+                    continue
 
                 if obj['type'] != 'extension':
                     continue

@@ -8,6 +8,7 @@ use warp::ws::Ws;
 use futures::stream::StreamExt;
 
 use core::fmt;
+
 use std::sync::Arc;
 use std::sync::Mutex;
 
@@ -17,6 +18,8 @@ use tokio::sync::broadcast::Sender as BroadcastSender;
 use tokio::sync::broadcast::Receiver as BroadcastReceiver;
 
 use tokio::sync::mpsc::Sender as SubscriptionSender;
+
+use tokio::sync::mpsc as MPSC;
 
 use crate::Filemap;
 use crate::JSMessageTx;
@@ -175,11 +178,11 @@ impl WSServer {
         }
     }
 
-    //TODO refactor this call, messy and lot of ARCs...
     async fn handle_ws_client(websocket: WebSocket,
         client_tx: BroadcastSender<Message>,
         buffer: MessageBuffer,
-        subscription_sender: SubscriptionSender<String>) {
+        subscription_sender: SubscriptionSender<String>,
+        exit_tx: MPSC::Sender<bool>) {
         // receiver - this server, from websocket client
         // sender - diff clients connected to this server
         let (mut sender, mut receiver) = websocket.split();
@@ -203,12 +206,18 @@ impl WSServer {
                                 break;  
                             } else if msg.is_ping() {
                                 // wont response to pong, underneath shoyld do it   
+                            } else if msg.is_close() {
+                                eprintln!("close message");
+                                break;
                             } else {
                                 eprintln!("Unexpected message type: {msg:#?}");
                             }
                         },
-                        Err(e) => {
-                            eprintln!("error reading message on websocket: {e}");
+                        Err(error) => {
+                            if ! error.to_string().contains("Connection reset without closing handshake") {  
+                                eprintln!("error reading message on websocket: {error}");
+                            }
+                            break;
                         }
                     };   
                 },
@@ -223,9 +232,9 @@ impl WSServer {
                                 do_buffer = true;
                                 Self::send_buffered(&mut sender, &buffer).await;
                             } else if do_buffer {
-                                write_to_buffer(msg, &buffer);    
+                                write_to_buffer(msg, &buffer);        
                             } else {
-                                sender.send(msg).await.unwrap_or_else(|e| eprintln!("Cannot send {e}"));
+                                sender.send(msg).await.unwrap_or_else(|e| eprintln!("Cannot send msg: {e}"));
                             }
                         },
                         Err(e) => {
@@ -235,6 +244,7 @@ impl WSServer {
                 },   
             }
         }
+        exit_tx.send(true).await.expect("Error in exit");
     }
 
     /// Run 
@@ -261,6 +271,9 @@ impl WSServer {
             
         }));
 
+        let (exit_tx, mut exit_rx) = MPSC::channel(32);
+
+
         let buffer = self.buffer.clone();
         let client_tx = self.client_tx.clone();
         let subscription_sender = self.subscription_sender.clone();
@@ -272,17 +285,23 @@ impl WSServer {
             let buffer = buffer.clone();
             let client_tx = client_tx.clone();
             let subscription_sender = subscription_sender.clone();
+            let exit_tx = exit_tx.clone();
             ws.on_upgrade( move |websocket: WebSocket| {
-                Self::handle_ws_client(websocket, client_tx, buffer, subscription_sender)
+                Self::handle_ws_client(websocket, client_tx, buffer, subscription_sender, exit_tx)
             })
         });
 
         let all_routes = ws_routes
         .or(get_routes);
      
-        let fut_srv = tokio::spawn(
-            warp::serve(all_routes)
-            .run(([127, 0, 0, 1], self.port)));
+        let (_, fut) = warp::serve(all_routes)
+            .bind_with_graceful_shutdown(([127, 0, 0, 1], self.port),  async move {
+                tokio::select! {
+                    Some(_) = exit_rx.recv() => {}
+                }
+            });
+
+        let fut_srv = tokio::spawn(fut);
 
         // Start browser Ui after server is spawned
         if !on_start(self.port) {
