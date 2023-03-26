@@ -1,7 +1,7 @@
 /*jshint esversion: 6 */
 var gemguiAddress = window.location.hostname + ':' + window.location.port;
 var httpUrl = "http://" + gemguiAddress;
-var uri = "ws://" + gemguiAddress + "/gemgui";
+var uri = "ws://" + gemguiAddress + "/gemgui/ui";
 
 //var uri = "ws://127.0.0.1:8080/gemgui";
 var socket = new WebSocket(uri);

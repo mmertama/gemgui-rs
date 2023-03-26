@@ -22,77 +22,93 @@ mod tests;
 #[serial]
 async fn test_on_start() { // These on_xxxx tests that there is no deadlock as element do locking
      let mut ui = setup();
+     static  mut VISITED: bool = false;
      ui.on_start(|ui| {
+        unsafe {VISITED = true};
         let comp = ui.element("content"); 
         assert_ne!(comp.id(), ui.root().id());
         ui.exit();
     });
     ui.run().await.unwrap();
     println!("ui: {:#?}", ui);
+    unsafe{assert!(VISITED)};
 }
 
 #[tokio::test]
 #[serial]
 async fn test_on_start_async() { // These on_xxxx tests that there is no deadlock as element do locking
     let mut ui = setup();
+    static  mut VISITED: bool = false;
     ui.on_start_async(|ui| async move {
+        unsafe {VISITED = true};
         let comp = ui.element("content"); 
         assert_ne!(comp.id(), ui.root().id());
         ui.exit();
     });
     ui.run().await.unwrap();
+    unsafe{assert!(VISITED)};
 }
  
 #[tokio::test]
 #[serial]
 async fn test_on_error() { // These on_xxxx tests that there is no deadlock as element do locking
     let mut ui = setup();
+    static  mut VISITED: bool = false;
     ui.on_error(|ui, _| {
+        unsafe {VISITED = true};
         let comp = ui.element("content"); 
         assert_ne!(comp.id(), ui.root().id());
         ui.exit();
     });
     ui.eval("blaa");
     ui.run().await.unwrap();
+    unsafe{assert!(VISITED)};
 }
 
 #[tokio::test]
 #[serial]
 async fn test_on_error_async() { // These on_xxxx tests that there is no deadlock as element do locking
     let mut ui = setup();
+    static  mut VISITED: bool = false;
     ui.on_error_async(|ui, _| async move {
+        unsafe {VISITED = true};
         let comp = ui.element("content"); 
         assert_ne!(comp.id(), ui.root().id());
         ui.exit();
     });
     ui.eval("blaa");
     ui.run().await.unwrap();
+    unsafe{assert!(VISITED)};
 }
 
 #[tokio::test]
 #[serial]
 async fn test_on_after() { // These on_xxxx tests that there is no deadlock as element do locking
     let mut ui = setup();
+    static  mut VISITED: bool = false;
     ui.after(Duration::from_millis(10), |ui, _| {
+        unsafe {VISITED = true};
         let comp = ui.element("content"); 
         assert_ne!(comp.id(), ui.root().id());
         ui.exit();
     });
-    ui.eval("blaa");
     ui.run().await.unwrap();
+    unsafe{assert!(VISITED)};
 }
 
 #[tokio::test]
 #[serial]
 async fn test_on_after_async() { // These on_xxxx tests that there is no deadlock as element do locking
     let mut ui = setup();
+    static  mut VISITED: bool = false;
     ui.after_async(Duration::from_millis(10),|ui, _| async move {
+        unsafe {VISITED = true};
         let comp = ui.element("content"); 
         assert_ne!(comp.id(), ui.root().id());
         ui.exit();
     });
-    ui.eval("blaa");
     ui.run().await.unwrap();
+    unsafe{assert!(VISITED)};
 }
 
 
@@ -100,26 +116,30 @@ async fn test_on_after_async() { // These on_xxxx tests that there is no deadloc
 #[serial]
 async fn test_on_duration() { // These on_xxxx tests that there is no deadlock as element do locking
     let mut ui = setup();
+    static  mut VISITED: bool = false;
     ui.periodic(Duration::from_millis(10), |ui, _| {
+        unsafe {VISITED = true};
         let comp = ui.element("content"); 
         assert_ne!(comp.id(), ui.root().id());
         ui.exit();
     });
-    ui.eval("blaa");
     ui.run().await.unwrap();
+    unsafe{assert!(VISITED)};
 }
 
 #[tokio::test]
 #[serial]
 async fn test_on_duration_async() { // These on_xxxx tests that there is no deadlock as element do locking
     let mut ui = setup();
+    static  mut VISITED: bool = false;
     ui.periodic_async(Duration::from_millis(10),|ui, _| async move {
+        unsafe {VISITED = true};
         let comp = ui.element("content"); 
         assert_ne!(comp.id(), ui.root().id());
         ui.exit();
     });
-    ui.eval("blaa");
     ui.run().await.unwrap();
+    unsafe{assert!(VISITED)};
 }
 
 
@@ -697,17 +717,32 @@ async fn test_device_pixel_ratio() {
 async fn test_batch() {
     let mut ui = setup();
     static mut VISITED : bool = false;
+    static mut BATCHED : bool = false;
+    static mut VISITS : i32 = 0;
     ui.on_start(|ui| {
+        unsafe{VISITS +=1};
         ui.batch_begin();
         ui.exit();
+        unsafe{assert!(!BATCHED)};
+        unsafe {BATCHED = true}
     });
-    ui.after(Duration::from_millis(100), |_, _| {
-        unsafe {VISITED = true} // this tries to prove that if batch ongoing, exit it captured until end
+    ui.after(Duration::from_millis(50), |_, _| {
+        unsafe{VISITS +=1};
+        unsafe{assert!(!VISITED)};
+        unsafe{assert!(BATCHED)};
+        unsafe {VISITED = true} // this tries to prove that if batch ongoing, exit is captured until end
+       
     });
-    ui.after(Duration::from_millis(500), |ui, _| {
+    ui.after(Duration::from_millis(1000), |ui, _| {
+        unsafe{VISITS +=1};
+        unsafe{assert!(BATCHED)};
+        unsafe{assert!(VISITED)}
         ui.batch_end();
+        
     });
     ui.run().await.unwrap();
+    unsafe{assert!(VISITS == 3, "{VISITS} != 3")};
+    unsafe{assert!(BATCHED)};
     unsafe{assert!(VISITED)}
 }
 

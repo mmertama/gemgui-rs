@@ -80,7 +80,6 @@ pub fn system_chrome() -> Option<(String, Vec<String>)> {
     None
 }
 
-
 #[allow(unused)]
 pub fn kill_headless() -> bool {
     let cmd = 
@@ -99,17 +98,21 @@ pub fn kill_headless() -> bool {
     };
 
     let output = std::process::Command::new(cmd.0)
-    .args(cmd.1)
+    .args(&cmd.1)
     .output();
 
 
     match output {
         Ok(out) => {
-            println!("kill headless: status: {}", out.status);
-            if (!out.status.success()) {
-                let cout = std::str::from_utf8(&out.stdout);
-                let cerr = std::str::from_utf8(&out.stderr);
-                println!("headless: killed: out: {}\n err: {}", cout.unwrap_or("???"), cerr.unwrap_or("???"));
+            if !out.status.success() {
+                if out.status.code().unwrap() != 1 {
+                    println!("kill headless status: {}", out.status);
+                    let cout = std::str::from_utf8(&out.stdout);
+                    let cerr = std::str::from_utf8(&out.stderr);
+                    println!("headless kill: out: {}\n err: {} call {} {}",
+                    cout.unwrap_or("???"), cerr.unwrap_or("???"), cmd.0, cmd.1.join(" "));
+                    return false;
+                }
             } else {
                 println!("UI killed ok");
             }

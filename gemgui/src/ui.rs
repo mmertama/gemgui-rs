@@ -530,8 +530,9 @@ impl Gui {
                             match m._type.as_str()  {
                                 "keepalive" => {
                                     println!("keep alive");
-                                }, 
-                                "uiready" => self.ready_handler(),
+                                },
+                                "uiready" => UiData::entered(&self.ui),
+                                "start_request" => self.start_handler(),
                                 "close_request"  => { 
                                     self.exit(); // send exit to all windows - then go
                                     break; },  
@@ -614,14 +615,16 @@ impl Gui {
         };
     }
 
-    fn ready_handler(&mut self) {
-        match &mut self.on_start_cb {
-            Some(cb) => cb(UiRef::new(self.ui.clone())),
-            None => (),
-        };
-        UiData::entered(&self.ui);
-        UiData::set_started(&self.ui);
-        self.on_start_notifee.send(State::Running).unwrap_or_else(|_| panic!("Cannot set ready"));
+
+    fn start_handler(&mut self) {
+        if ! UiData::is_started(&self.ui) {
+            UiData::set_started(&self.ui);
+            match &mut self.on_start_cb {
+                Some(cb) => cb(UiRef::new(self.ui.clone())),
+                None => (),
+            };
+            self.on_start_notifee.send(State::Running).unwrap_or_else(|_| panic!("Cannot set ready"));
+        }
     }
 
     fn get_subscribe_callback(&self, id: &str, event_name: &str) -> Option<Arc<Mutex<SubscribeCallback>>> {

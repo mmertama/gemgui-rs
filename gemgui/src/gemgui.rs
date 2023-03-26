@@ -439,6 +439,7 @@ impl GemGuiError {
 /// # Return
 /// 
 /// Filemap
+/// 
 pub fn filemap_from_dir<DirName>(path: DirName) -> std::io::Result<Filemap>
  where DirName: AsRef<Path>{
     let dirname = path.as_ref().to_str().unwrap();
@@ -550,7 +551,8 @@ pub fn wait_free_port(port: u16, max_wait: Duration) -> bool {
             }
         }
 
-/// Convenience to create a runtime 
+
+/// Convenience to create an default UI application
 /// 
 /// # Arguments
 /// 
@@ -565,13 +567,79 @@ pub fn wait_free_port(port: u16, max_wait: Duration) -> bool {
 /// # Return
 /// 
 /// Application exit result
+/// 
 pub fn application<CB, Fut>(filemap: Filemap, index_html: &str, port: u16, application_cb: CB)  -> Result<()> 
 where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
     Fut: Future<Output = ()> + Send + 'static {
         create_application(filemap, index_html, port, application_cb, |_|{})
     }
 
-    pub fn window_application<CB, Fut>(
+
+/// Convenience to create a windowed UI application 
+/// 
+/// # Arguments
+/// 
+/// `filemap`- resources
+/// 
+/// `index_html`- UI document
+/// 
+/// `port` - port used to connect in this application session
+/// 
+/// `application_cb`: Callback called when UI is ready
+/// 
+/// `title``- window title
+/// 
+/// `width` - window width
+///
+/// `height` - window height
+/// 
+/// `parameters` - list of key - value pairs to be passed to UI backend. 
+///  
+/// `flags` - bit flags be passed to UI backend
+///  
+/// NORESIZE
+/// FULLSCREEN
+/// HIDDEN
+/// FRAMELESS
+/// MINIMIZED
+/// ONTOP
+/// CONFIRMCLOSE
+/// TEXTSELECT
+/// EASYDRAG
+/// TRANSPARENT
+/// 
+/// # Return
+/// 
+/// Application exit result
+/// 
+/// # Example
+/// 
+/// ```no_run
+/// # use gemgui::GemGuiError;
+/// # use gemgui::Result;
+/// # use gemgui::ui::{Gui, Ui};
+/// # use gemgui::ui_ref::UiRef;
+/// # const RESOURCES: &[(&'static str, &'static str)] = &[]; 
+/// fn main() -> Result<()> {
+///    let fm = gemgui::filemap_from(RESOURCES);
+///    gemgui::window_application(fm,
+///       "index.html",
+///        gemgui::next_free_port(30000u16),
+///        |ui| async {my_main(ui).await},
+///        "My application",
+///        900,
+///        500,
+///        &[("debug", "True")],
+///        0)
+///    }
+/// 
+/// async fn my_main(ui: UiRef) {
+///     // ...
+/// }
+/// ```
+/// 
+#[allow(clippy::too_many_arguments)]
+pub fn window_application<CB, Fut>(
         filemap: Filemap,
         index_html: &str,
         port: u16,
@@ -579,12 +647,12 @@ where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
         title: &str,
         width:u32,
         height: u32,
-        python_parameters: &[(&str, &str)],
+        parameters: &[(&str, &str)],
         flags: u32)  -> Result<()> 
     where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
         Fut: Future<Output = ()> + Send + 'static {
             create_application(filemap, index_html, port, application_cb, |ui| {
-                ui.set_python_gui(title, width, height, python_parameters, flags);})
+                ui.set_python_gui(title, width, height, parameters, flags);})
         }
 
 

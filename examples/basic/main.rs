@@ -16,6 +16,7 @@ async fn main() -> Result<(), GemGuiError> {
     // use python ui
     ui.set_python_gui("Basic", 500, 600, &[("debug", "True")], 0);
     ui.set_logging(true);
+
     let canvas = Canvas::new(&ui.element("canvas"));
     let bmp = Bitmap::rect(100, 100, Color::CYAN);
     canvas.draw_bitmap_at(99, 10, &bmp);

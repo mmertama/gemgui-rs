@@ -30,6 +30,9 @@ pub (crate) fn setup () -> gemgui::ui::Gui {
         while !gemgui::wait_free_port(port, Duration::from_secs(2)) {
             chrome::kill_headless();
         }
+        if ! chrome::kill_headless() {
+            panic!("Cannot execute test unless test env is deleted");
+        }
         let mut ui = gemgui::ui::Gui::new(fm, "tests.html", port).unwrap();
         let chrome = chrome::system_chrome();
         if chrome.is_some() {

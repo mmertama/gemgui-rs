@@ -10,6 +10,11 @@ import argparse
 import ast
 
 
+import logging
+logger = logging.getLogger('websockets')
+logger.setLevel(logging.DEBUG)
+logger.addHandler(logging.StreamHandler())
+
 do_exit = None
 
 # file_types = ('Image Files (*.bmp;*.jpg;*.gif)', 'All files (*.*)')
@@ -25,27 +30,45 @@ def make_filters(filters):
 
 
 def on_show(window, host, port):
-    ws_uri = 'ws://{}:{}/gemgui'.format(host, port)
+    ws_uri = 'ws://{}:{}/gemgui/extension'.format(host, port)
     window_destroyed = False
-    async def extender():
-        async with websockets.connect(ws_uri, close_timeout=10) as ws:
+
+    async def extender():    
+        async with websockets.connect(ws_uri,
+                                    close_timeout=None,
+                                    ping_interval=None,
+                                    compression=None) as ws:
             nonlocal window_destroyed
             loop = asyncio.get_event_loop()
+            #receive = loop.create_task(ws.recv())
             
-
             def destroy_window():
                 if not window_destroyed:
                     window.minimize()  # it takes some time
                     window.destroy()
                 return
+            
+            
 
             def exit_f():
-                receive.cancel()
+                pass
+                ##loop.run_until_complete(ws.close)
+                #nonlocal receive
+                #receive.cancel()
 
             global do_exit
             do_exit = exit_f
 
-            await ws.send(json.dumps({'type': 'extensionready'}))
+
+            #while not ws.open:
+            #    await asyncio.sleep(1)
+            #    print("Exception is NOT open")
+
+            try:
+                await ws.send(json.dumps({'type': 'extensionready'}))
+            except Exception as e:
+                print(f"Initial send failed {e}") 
+                return   
 
             while True:
                 receive = loop.create_task(ws.recv())
@@ -55,7 +78,8 @@ def on_show(window, host, port):
                     destroy_window()
                     await ws.close()
                     return
-                except websockets.ConnectionClosedError:
+                except websockets.ConnectionClosedError as e:
+                    print(f"Connection closed: {ws_uri} due {e}")
                     destroy_window()
                     return
 
@@ -96,55 +120,7 @@ def on_show(window, host, port):
                 ext_id = obj['extension_id']
 
                 response = None
-                '''
-                if call_id == 'openFile':
-                    dir_name = params['dir']
-                    filters = params['filter']
-
-                    result = window.create_file_dialog(webview.OPEN_DIALOG,
-                                                       directory=dir_name,
-                                                       allow_multiple=False,
-                                                       file_types=make_filters(filters))
-                    response = json.dumps({
-                        'type': 'extension_response',
-                        'extension_call': 'openFileResponse',
-                        'extension_id': ext_id,
-                        'openFileResponse': str(result[0]) if result else ''})
-                if call_id == 'openFiles':
-                    dir_name = params['dir']
-                    filters = params['filter']
-                    result = window.create_file_dialog(webview.OPEN_DIALOG,
-                                                       directory=dir_name,
-                                                       allow_multiple=True,
-                                                       file_types=make_filters(filters))
-                    response = json.dumps({
-                        'type': 'extension_response',
-                        'extension_call': 'openFilesResponse',
-                        'extension_id': ext_id,
-                        'openFilesResponse': list(result) if result else []})
-                if call_id == 'openDir':
-                    dir_name = params['dir']
-                    result = window.create_file_dialog(webview.FOLDER_DIALOG,
-                                                       directory=dir_name,
-                                                       allow_multiple=False)
-                    response = json.dumps({
-                        'type': 'extension_response',
-                        'extension_call': 'openDirResponse',
-                        'extension_id': ext_id,
-                        'openDirResponse': str(result[0]) if result else ''})
-                if call_id == 'saveFile':
-                    dir_name = params['dir']
-                    filters = params['filter']
-                    result = window.create_file_dialog(webview.SAVE_DIALOG,
-                                                       directory=dir_name,
-                                                       allow_multiple=False,
-                                                       file_types=make_filters(filters))
-                    response = json.dumps({
-                        'type': 'extension_response',
-                        'extension_call': 'saveFileResponse',
-                        'extension_id': ext_id,
-                        'saveFileResponse': str(result) if result else ''})
-                '''
+                
                 if call_id == 'setAppIcon':
                     pass
                 if call_id == 'resize':

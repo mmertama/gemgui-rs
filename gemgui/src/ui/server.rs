@@ -112,6 +112,7 @@ async fn wait_early_messages(msg_queue: MessageBuffer, mut rx: BroadcastReceiver
 
 fn write_to_buffer(msg: Message, buffer: &MessageBuffer) {
     let mut buf = buffer.lock().unwrap();
+    debug_assert!(msg.is_text());
     buf.push(msg);
 }
 
@@ -146,20 +147,26 @@ impl WSServer {
     // as then mutex is locked and async-send cannot happen
     // Just clone data from index 
     fn take_as_msg( buffer: &MessageBuffer) -> (Vec<JSType>, Vec<Vec<u8>>) {
-        let mut buf = buffer.lock().unwrap();
+        let buf = buffer.lock().unwrap();
         let mut vec_txt = Vec::new();
         let mut vec_bin = Vec::new();
         for msg in buf.iter() {
             if msg.is_text() {
                 let s = msg.to_str().unwrap();
-                let json = serde_json::from_str(s).unwrap();
+                if s == BATCH_BEGIN || s == BATCH_END {continue;}
+                let json = serde_json::from_str(s).unwrap_or_else(
+                    |e|panic!("Invalid Json '{s}': {e}"));
                 vec_txt.push(json);
             } else {
                 vec_bin.push(msg.as_bytes().to_vec());
             }
         }
-        buf.clear();
         (vec_txt, vec_bin)    
+    }
+
+    fn clear_buffer( buffer: &MessageBuffer) {
+        let mut buf = buffer.lock().unwrap();
+        buf.clear();
     }
 
     async fn send_buffered(sender: &mut SplitSink<WebSocket, Message>, buffer: &MessageBuffer) { 
@@ -182,7 +189,8 @@ impl WSServer {
         client_tx: BroadcastSender<Message>,
         buffer: MessageBuffer,
         subscription_sender: SubscriptionSender<String>,
-        exit_tx: MPSC::Sender<bool>) {
+        exit_tx: MPSC::Sender<bool>,
+        is_gui: bool) {
         // receiver - this server, from websocket client
         // sender - diff clients connected to this server
         let (mut sender, mut receiver) = websocket.split();
@@ -201,14 +209,16 @@ impl WSServer {
                                 subscription_sender.send(txt).await.unwrap();
                             } else if msg.is_close() {
                                 // tell ui.rs to leave the loop - Json constant...
+                                if let Some(cf) = msg.close_frame() {
+                                    if cf.0 != 1001 {
+                                        eprintln!("Closed code:{} std:{}", cf.0, cf.1);
+                                    }
+                                }
                                 let close = String::from("{\"type\": \"close_request\"}"); 
                                 subscription_sender.send(close).await.unwrap();
                                 break;  
                             } else if msg.is_ping() {
-                                // wont response to pong, underneath shoyld do it   
-                            } else if msg.is_close() {
-                                eprintln!("close message");
-                                break;
+                                // wont response to pong, underneath should do it   
                             } else {
                                 eprintln!("Unexpected message type: {msg:#?}");
                             }
@@ -226,14 +236,21 @@ impl WSServer {
                         Ok(msg) => {
                             if msg.is_text() && msg.to_str().unwrap() == ENTERED {
                                 Self::send_buffered(&mut sender, &buffer).await;
+                                let started = String::from("{\"type\": \"start_request\"}"); 
+                                subscription_sender.send(started).await.unwrap();
                             } else if msg.is_text() && msg.to_str().unwrap() == BATCH_BEGIN  {
-                                do_buffer = true;
+                                if ! do_buffer {
+                                    Self::clear_buffer(&buffer);
+                                    do_buffer = true;
+                                }
                             } else if msg.is_text() && msg.to_str().unwrap() == BATCH_END  {
-                                do_buffer = true;
-                                Self::send_buffered(&mut sender, &buffer).await;
-                            } else if do_buffer {
+                                if do_buffer {
+                                    Self::send_buffered(&mut sender, &buffer).await;
+                                    do_buffer = false;
+                                }
+                            } else if msg.is_text() && do_buffer {
                                 write_to_buffer(msg, &buffer);        
-                            } else {
+                            } else if msg.is_text() || is_gui { // binary data is not sent to extension
                                 sender.send(msg).await.unwrap_or_else(|e| eprintln!("Cannot send msg: {e}"));
                             }
                         },
@@ -277,21 +294,22 @@ impl WSServer {
         let buffer = self.buffer.clone();
         let client_tx = self.client_tx.clone();
         let subscription_sender = self.subscription_sender.clone();
-        let ws_routes = warp::ws()
+        
+        let ui_route = warp::ws()
         .and(warp::path("gemgui"))
-        .map( move |ws: Ws| {
-            //let clients = clients.clone();
-            // And then our closure will be called when it completes...
+        .and(warp::path::param())
+        .map( move |ws: Ws, name: String| {
             let buffer = buffer.clone();
             let client_tx = client_tx.clone();
             let subscription_sender = subscription_sender.clone();
             let exit_tx = exit_tx.clone();
+            let is_gui = name != "extension";
             ws.on_upgrade( move |websocket: WebSocket| {
-                Self::handle_ws_client(websocket, client_tx, buffer, subscription_sender, exit_tx)
+                Self::handle_ws_client(websocket, client_tx, buffer, subscription_sender, exit_tx, is_gui)
             })
         });
 
-        let all_routes = ws_routes
+          let all_routes = ui_route
         .or(get_routes);
      
         let (_, fut) = warp::serve(all_routes)
