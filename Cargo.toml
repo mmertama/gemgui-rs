@@ -14,7 +14,8 @@ members = [
     "examples/zoom_rotator",
     "examples/mouse_pick",
     "examples/canvas",
-    "examples/basic"
+    "examples/basic",
+    "examples/dialogs"
 ]
 
 [profile.release]

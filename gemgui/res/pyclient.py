@@ -9,11 +9,12 @@ import re
 import argparse
 import ast
 
-
+'''
 import logging
 logger = logging.getLogger('websockets')
 logger.setLevel(logging.DEBUG)
 logger.addHandler(logging.StreamHandler())
+'''
 
 do_exit = None
 
@@ -27,7 +28,80 @@ def make_filters(filters):
         filters_list.append(filter_string)
     return tuple(filters_list)
 
+def open_file_dialog(window, params, ex_id):
+    dir_name = params['dir']
+    filters = params['filters']
 
+    result = window.create_file_dialog(webview.OPEN_DIALOG,
+                                        directory=dir_name,
+                                        allow_multiple=False,
+                                        file_types=make_filters(filters))
+    response = json.dumps({
+        'type': 'extension_response',
+        'extension_call': 'openFileResponse',
+        'extension_id': ex_id,
+        'openFileResponse': str(result[0]) if result else ''})
+    return response
+        
+
+def open_files_dialog(window, params, ex_id):
+    dir_name = params['dir']
+    filters = params['filters']
+    result = window.create_file_dialog(webview.OPEN_DIALOG,
+                                        directory=dir_name,
+                                        allow_multiple=True,
+                                        file_types=make_filters(filters))
+    response = json.dumps({
+        'type': 'extension_response',
+        'extension_call': 'openFilesResponse',
+        'extension_id': ex_id,
+        'openFilesResponse': list(result) if result else []})
+    return response
+        
+
+def open_dir_dialog(window, params, ex_id): 
+    dir_name = params['dir']
+    result = window.create_file_dialog(webview.FOLDER_DIALOG,
+                                        directory=dir_name,
+                                        allow_multiple=False)
+    response = json.dumps({
+        'type': 'extension_response',
+        'extension_call': 'openDirResponse',
+        'extension_id': ex_id,
+        'openDirResponse': str(result[0]) if result else ''})
+    return response
+
+
+def save_file_dialog(window, params, ex_id):
+    dir_name = params['dir']
+    filters = params['filters']
+    result = window.create_file_dialog(webview.SAVE_DIALOG,
+                                        directory=dir_name,
+                                        allow_multiple=False,
+                                        file_types=make_filters(filters))
+    response = json.dumps({
+        'type': 'extension_response',
+        'extension_call': 'saveFileResponse',
+        'extension_id': ex_id,
+        'saveFileResponse': str(result) if result else ''})
+    return response
+    
+
+def resize(window, params):
+     # window.resize include titlebar, so we get current body and get title height, so we can add it to get requested body size
+    # known issue, does not work well with FRAMELESS. Fix someday.
+    vp_height = window.evaluate_js(r'Math.min(window.innerHeight, document.documentElement.clientHeight);')
+    vp_width = window.evaluate_js(r'Math.min(window.innerWidth, document.documentElement.clientWidth);')
+    border_height = window.height - vp_height
+    border_width = window.width - vp_width
+    width = params['width']
+    height = params['height']
+    window.resize(width + border_width, height + border_height)
+
+
+def set_title(window, params):
+    title = params['title']
+    window.set_title(title)
 
 def on_show(window, host, port):
     ws_uri = 'ws://{}:{}/gemgui/extension'.format(host, port)
@@ -111,28 +185,35 @@ def on_show(window, host, port):
                     continue
 
                 call_id = obj['extension_call']
-                params = json.loads(obj['extension_parameters'])
-                ext_id = obj['extension_id']
-
+                params = obj['extension_params']
+               
                 response = None
                 
                 if call_id == 'setAppIcon':
                     pass
+                
                 if call_id == 'resize':
-                    # window.resize include titlebar, so we get current body and get title height, so we can add it to get requested body size
-                    # known issue, does not work well with FRAMELESS. Fix someday.
-                    vp_height = window.evaluate_js(r'Math.min(window.innerHeight, document.documentElement.clientHeight);')
-                    vp_width = window.evaluate_js(r'Math.min(window.innerWidth, document.documentElement.clientWidth);')
-                    border_height = window.height - vp_height
-                    border_width = window.width - vp_width
-                    width = params['width']
-                    height = params['height']
-                    window.resize(width + border_width, height + border_height)
+                    resize(window, params)
+                   
                 if call_id == 'setTitle':
-                    title = params['title']
-                    window.set_title(title)
+                   set_title(window, params)
+
                 if call_id == 'ui_info':
                     pass
+
+                ex_id = obj['extension_id']    
+                if call_id == 'openFile':
+                    response = open_file_dialog(window, params, ex_id)
+
+                if call_id == 'openFiles':
+                    response = open_files_dialog(window, params, ex_id)
+
+                if call_id == 'saveFile':
+                    response = save_file_dialog(window, params, ex_id)
+
+                if call_id == 'openDir':
+                    response = open_dir_dialog(window, params, ex_id)            
+
 
                 if response:
                     await ws.send(response)

@@ -13,7 +13,6 @@ include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 
 async fn amain(ui: UiRef) {
   let image = ui.resource("widgets.jpeg").unwrap();
-  ui.set_logging(true);
   let bitmap = Bitmap::from_image_bytes(&image).unwrap();
   let mut transformer = BitmapTransform::new(&bitmap);
 

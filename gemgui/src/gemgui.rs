@@ -105,6 +105,8 @@ pub mod event;
 pub mod ui_ref;
 /// Graphics
 pub mod graphics;
+/// Dialogs
+pub mod dialogs;
 
 /// Resource pack for build.rs
 pub mod respack;
@@ -348,7 +350,14 @@ struct JSMessageTx<'a> {
     #[serde(skip_serializing_if = "Option::is_none")]
     pos: Option<Vec<f32>>,
     #[serde(skip_serializing_if = "Option::is_none")]
-    commands: Option<&'a Vec<String>>
+    commands: Option<&'a Vec<String>>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    extension_id: Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    extension_call:  Option<&'a str>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    extension_params: Option<&'a JSMap>,
+   
 }
 
 #[derive(serde::Deserialize, serde::Serialize, Debug)]

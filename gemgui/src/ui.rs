@@ -539,6 +539,7 @@ impl Gui {
                                 "event" => self.event_handler(m),
                                 "query" => self.query_handler(&msg),
                                 "error" => self.error_handler(&msg),
+                                "extension_response" => self.extension_response_handler(&msg),
                                 "extensionready" => println!("Extension ready"),
                                 _ => panic!("Handler not implemented for {}", m._type)
                             }
@@ -613,6 +614,23 @@ impl Gui {
                 eprintln!("No query listener for {query_id}");
             }
         };
+    }
+
+    fn extension_response_handler(&mut self, raw: &str) {
+        let mut js: serde_json::Value = serde_json::from_str(raw).unwrap();
+        let extension_call = String::from(js["extension_call"].as_str().unwrap()); // otherwise we cannot take later as mutable
+        let extension_id = js["extension_id"].as_str().unwrap();
+        let tx = UiData::get_query_sender(&mut self.ui, extension_id);
+        match tx {
+            Some(r) => {
+                let value = js[extension_call].take();
+                r.send(value).unwrap_or_else(|e| {panic!("Cannot send extension: {e}")});
+            },
+            None =>  {
+                eprintln!("No extension listener for {extension_id}");
+            }
+        };
+       
     }
 
 
