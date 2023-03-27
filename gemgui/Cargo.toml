@@ -50,6 +50,4 @@ which = "4.4.0"
 name = "gemgui"
 path = "src/gemgui.rs" 
 
-[profile.release]
-lto = true
-# Consider apply when more mature: panic = "abort"
+

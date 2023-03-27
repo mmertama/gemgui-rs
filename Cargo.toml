@@ -19,3 +19,4 @@ members = [
 
 [profile.release]
 lto = true
+# Consider apply when more mature: panic = "abort"

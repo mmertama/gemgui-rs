@@ -80,7 +80,7 @@ pub (crate) static BATCH_END: &str = "batch_end";
     FrameName(String),	
 }
 
-/// Py Ui Flags See [set_python_gui] (Gui::set_python_gui)
+/// Py Ui Flags See [Gui::set_python_gui]
 pub mod py_ui_flags {
     /// See pywebview documentation 
     pub const NORESIZE : u32 = 0x1;
@@ -128,7 +128,7 @@ pub (crate) mod private {
 pub trait Ui : private::UserInterface {
 
     /// Root element
-    /// HTML really does not have a root element, but this helps to refer <body> level
+    /// HTML really does not have a root element, but this helps to refer &lt;body&gt; level
     fn root(&self) -> Element {
         UiData::root(self.ui())
     }

@@ -59,11 +59,6 @@ def on_show(window, host, port):
             global do_exit
             do_exit = exit_f
 
-
-            #while not ws.open:
-            #    await asyncio.sleep(1)
-            #    print("Exception is NOT open")
-
             try:
                 await ws.send(json.dumps({'type': 'extensionready'}))
             except Exception as e:

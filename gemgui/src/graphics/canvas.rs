@@ -75,7 +75,7 @@ pub enum DrawNotify {
 impl Canvas {
     /// A new canvas cloned from an element
     /// 
-    /// It is assumed that element's  HTML element type is <canvas>
+    /// It is assumed that element's  HTML element type is &lt;canvas&gt;
     /// but that is not ensured here. If not, results are
     /// unpredictable 
     /// 
@@ -94,7 +94,7 @@ impl Canvas {
 
     /// A new canvas from an element
     ///
-    /// It is assumed that element's  HTML element type is <canvas>
+    /// It is assumed that element's  HTML element type is &lt;canvas&gt;
     /// but that is not ensured here. If not, results are
     /// unpredictable 
     ///

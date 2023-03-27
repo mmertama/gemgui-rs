@@ -21,7 +21,7 @@
 //! 
 //! # Main
 //! 
-//! There are two ways to initiate main
+//! There are few ways to initiate main
 //! 1) Use [tokio](https://docs.rs/tokio/latest/tokio/attr.main.html) 
 //! ```no_run
 //! # use gemgui::GemGuiError;
@@ -46,6 +46,22 @@
 //!     let fm = gemgui::filemap_from(RESOURCES);
 //!     gemgui::application(fm, "hello.html", 12345,
 //!     |ui| async {my_app(ui).await})
+//! }
+//! 
+//! async fn my_app(ui: UiRef) {
+//!    //...     
+//! } 
+//!```
+//! 3) [window application](window_application)
+//! ```no_run
+//! # use gemgui::GemGuiError;
+//! # use gemgui::Result;
+//! # use gemgui::ui_ref::UiRef;
+//! # const RESOURCES: &[(&'static str, &'static str)] = &[]; 
+//! fn main() -> Result<()> { 
+//!     let fm = gemgui::filemap_from(RESOURCES);
+//!     gemgui::window_application(fm, "hello.html", 12345,
+//!     |ui| async {my_app(ui).await}, "My App", 500, 500, &[], 0)
 //! }
 //! 
 //! async fn my_app(ui: UiRef) {
@@ -587,7 +603,7 @@ where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
 /// 
 /// `application_cb`: Callback called when UI is ready
 /// 
-/// `title``- window title
+/// `title`- window title
 /// 
 /// `width` - window width
 ///
@@ -597,16 +613,16 @@ where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
 ///  
 /// `flags` - bit flags be passed to UI backend
 ///  
-/// NORESIZE
-/// FULLSCREEN
-/// HIDDEN
-/// FRAMELESS
-/// MINIMIZED
-/// ONTOP
-/// CONFIRMCLOSE
-/// TEXTSELECT
-/// EASYDRAG
-/// TRANSPARENT
+/// * NORESIZE
+/// * FULLSCREEN
+/// * HIDDEN
+/// * FRAMELESS
+/// * MINIMIZED
+/// * ONTOP
+/// * CONFIRMCLOSE
+/// * TEXTSELECT
+/// * EASYDRAG
+/// * TRANSPARENT
 /// 
 /// # Return
 /// 
