@@ -131,16 +131,19 @@ impl Element {
             None =>  vec!(JSType::from("")),
         };
         UiData::add_subscription(&self.ui, &self.id, name, callback);
-        let throttle = throttle.as_millis().to_string();   
-        let msg =  JSMessageTx {
-            element: self.id(),
-            _type: "event",
-            event: Some(name),
-            properties: Some(&properties),
-            throttle: Some(&throttle),
-            ..Default::default()
-        };
-        self.send(msg);
+
+        if name != "created" { // created are not subscribed - come when created
+            let throttle = throttle.as_millis().to_string();   
+            let msg =  JSMessageTx {
+                element: self.id(),
+                _type: "event",
+                event: Some(name),
+                properties: Some(&properties),
+                throttle: Some(&throttle),
+                ..Default::default()
+            };
+            self.send(msg);
+        }
     }
 
     /// Subscribe event

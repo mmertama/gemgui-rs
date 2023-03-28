@@ -38,9 +38,13 @@ function g_info(msg) {
 
 function g_error(msg) {
     const getTrace = function() {
-      const obj = {};
-      Error.captureStackTrace(obj, getTrace);
-      return obj.stack;
+        if (Error.captureStackTrace !== undefined) {
+            const obj = {};
+            Error.captureStackTrace(obj, getTrace);
+            return obj.stack;
+        } else {
+            return "Stack trace is not supported!";
+        }
     };
     const logged = Array.prototype.slice.call(arguments).join(', ');
     socket.send(JSON.stringify({'type': 'log', 'level': 'error', 'msg': logged, 'trace': getTrace()}));
@@ -58,9 +62,13 @@ function errlog(source, text) {
     source = source || "Unknown";
 
     const getTrace = function() {
-      const obj = {};
-      Error.captureStackTrace(obj, getTrace);
-      return obj.stack;
+        if (Error.captureStackTrace !== undefined) {
+            const obj = {};
+            Error.captureStackTrace(obj, getTrace);
+            return obj.stack;
+        } else {
+            return "Stack trace is not supported!";
+        }
     };
 
     console.error("error:" + source + " --> " + text);
@@ -82,6 +90,20 @@ function assert(condition, msg) {
 function createElement(parent, tag, id) {
     
     if(document.getElementById(id) == null) {
+
+
+        const observer = new MutationObserver((mutationList, observer) => {
+            for (const mutation of mutationList) {
+                if (mutation.type === "childList") {
+                    socket.send(JSON.stringify({'type': 'event', 'element': id, 'event': 'created', 'properties': {}}));
+                    observer.disconnect();
+                }
+            }
+        });
+
+        observer.observe(parent, {childList: true })
+
+
         const el = document.createElement(tag);
         if(!el) {
             errlog("createElement", "Cannot create " + id);
@@ -91,7 +113,7 @@ function createElement(parent, tag, id) {
         if(parent)
             parent.appendChild(el);
         else
-            document.body.appendChild(el);
+            document.body.appendChild(el); 
         log("created", tag, id, parent, el.id);
     } else {
         errlog("createElement", "Element exists " + id);

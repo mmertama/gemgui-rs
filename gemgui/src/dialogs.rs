@@ -7,7 +7,7 @@ enum DialogType {
     OpenFile,
     OpenFiles,
     OpenDir,
-    SaveFiles,
+    SaveFile,
 }
 
 impl fmt::Display for DialogType {
@@ -16,7 +16,7 @@ impl fmt::Display for DialogType {
             DialogType::OpenFile => write!(f, "openFile"),
             DialogType::OpenFiles => write!(f, "openFiles"),
             DialogType::OpenDir => write!(f, "openDir"),
-            DialogType::SaveFiles => write!(f, "saveFile"),
+            DialogType::SaveFile => write!(f, "saveFile"),
         }
     }
 }
@@ -26,7 +26,7 @@ enum DialogValue {
     FileNames(Vec<String>),
 }
 
-pub async fn open_file(ui: UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&str>)]) -> Result<PathBuf, GemGuiError>  {
+fn make_filters(filters: &[(&str, std::vec::Vec<&str>)]) -> JSMap {
     let mut ft = JSMap::new();
     for (name, exts) in filters.iter() {
         let mut ext_vec = Vec::new();
@@ -35,19 +35,69 @@ pub async fn open_file(ui: UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&s
         }
         ft.insert(name.to_string(), serde_json::json!(ext_vec));
     }
+    ft
+}
+
+pub async fn open_file(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&str>)]) -> Result<PathBuf, GemGuiError>  {
+    let ft = make_filters(filters);
     let mut properties = JSMap::new();
     properties.insert("dir".to_string(), JSType::from(dir.to_string_lossy()));
     properties.insert("filters".to_string(), serde_json::json!(ft));
     let file_name = dialog(ui, DialogType::OpenFile, properties).await?;
     if let DialogValue::FileName(file_name) = file_name {
         let path = Path::new(&file_name);
-        return Ok(PathBuf::from(path));
+        return Ok(path.to_path_buf());
     }
     return Err(GemGuiError::Err(format!("Invalid type")));
 
 }
 
-async fn dialog(ui: UiRef, dialog_type: DialogType, dialog_params: JSMap) ->  Result<DialogValue, GemGuiError>  {
+pub async fn open_files(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&str>)]) -> Result<Vec<PathBuf>, GemGuiError>  {
+    let ft = make_filters(filters);
+    let mut properties = JSMap::new();
+    properties.insert("dir".to_string(), JSType::from(dir.to_string_lossy()));
+    properties.insert("filters".to_string(), serde_json::json!(ft));
+    let file_name = dialog(ui, DialogType::OpenFiles, properties).await?;
+    if let DialogValue::FileNames(file_names) = file_name {
+        let mut paths = Vec::new();
+        for fname in file_names.iter() {
+            let path = Path::new(&fname).to_path_buf();
+            paths.push(path);
+        }
+        
+        return Ok(paths);
+    }
+    return Err(GemGuiError::Err(format!("Invalid type")));
+
+}
+
+pub async fn open_dir(ui: &UiRef, dir: &Path) -> Result<PathBuf, GemGuiError>  {
+    let mut properties = JSMap::new();
+    properties.insert("dir".to_string(), JSType::from(dir.to_string_lossy()));
+    let file_name = dialog(ui, DialogType::OpenDir, properties).await?;
+    if let DialogValue::FileName(file_name) = file_name {
+        let path = Path::new(&file_name);
+        return Ok(path.to_path_buf());
+    }
+    return Err(GemGuiError::Err(format!("Invalid type")));
+}
+
+pub async fn save_file(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&str>)]) -> Result<PathBuf, GemGuiError>  {
+    let ft = make_filters(filters);
+    let mut properties = JSMap::new();
+    properties.insert("dir".to_string(), JSType::from(dir.to_string_lossy()));
+    properties.insert("filters".to_string(), serde_json::json!(ft));
+    let file_name = dialog(ui, DialogType::SaveFile, properties).await?;
+    if let DialogValue::FileName(file_name) = file_name {
+        let path = Path::new(&file_name);
+        eprintln!("foo save {:#?}", path);
+        return Ok(path.to_path_buf());
+    }
+    return Err(GemGuiError::Err(format!("Invalid type")));
+
+}
+
+async fn dialog(ui: &UiRef, dialog_type: DialogType, dialog_params: JSMap) ->  Result<DialogValue, GemGuiError>  {
     let (id, receiver) = UiData::new_query(ui.ui());
     let extension_call = dialog_type.to_string();
     let msg =  JSMessageTx {
@@ -74,7 +124,7 @@ async fn dialog(ui: UiRef, dialog_type: DialogType, dialog_params: JSMap) ->  Re
                     None => GemGuiError::error("Bad value"),
                     }
                 },
-                _ => Ok(DialogValue::FileName(value.to_string()))
+                _ => Ok(DialogValue::FileName(value.as_str().expect("Not a string").to_string()))
             }        
         },
         Err(e) => Err(GemGuiError::Err(format!("Extension error {e}")))

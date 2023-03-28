@@ -5,6 +5,8 @@ use crate::{graphics::{color as Color}, ui_data::UiData, Rect, Result};
 use futures::Future;
 use crate::{element::Element, ui_ref::UiRef, JSMessageTx, graphics::bitmap::BitmapData};
 
+use crate::Value;
+
 
 // this value depends if websocket payload size
 // in theory is big one (i.e. huge 2^63), but in practice it seems to be 
@@ -397,20 +399,26 @@ impl Canvas {
     /// Image id
     pub fn add_image<OptCB, CB>(&self, url: &str, image_added_cb: OptCB) -> Result<String>
         where
-        CB: FnMut(UiRef, String) + Send + 'static,
+        CB: FnMut(UiRef, String) + Clone + Send + Sync + 'static,
         OptCB: Into<Option<CB>> {  // FnOnce or FnMut (or Fn ????)  {
             let name = UiData::random("image");
             let id_name = name.clone();
-            let image_element = 
-            self.ui().add_element_with_id(&name, "IMG", self)?;
+            let url = url.to_string();
             let cb = image_added_cb.into();
-            if let Some(mut f) = cb {
-                image_element.subscribe_properties("load",
-                 move |ui, _| f(ui, name.clone()), &["complete"]);
+            let result = self.ui().add_element_with_id(&name, "IMG", self, move |ui, el: Element| {
+                let cb = cb.clone();
+                if let Some(mut f) = cb {
+                    let id_name = id_name.clone();
+                    el.subscribe_properties("load",
+                    move |ui, _| f(ui, id_name.clone()), &["complete"]);
+                }
+                el.set_attribute("style", "display:none");
+                el.set_attribute("src", &url);
+            });
+            match result {
+                Ok(_) => Ok(name),
+                Err(e) => Err(e)
             }
-            image_element.set_attribute("style", "display:none");
-            image_element.set_attribute("src", url);
-            Ok(id_name)
         }
 
     /// Draws an image

@@ -83,7 +83,7 @@ def save_file_dialog(window, params, ex_id):
         'type': 'extension_response',
         'extension_call': 'saveFileResponse',
         'extension_id': ex_id,
-        'saveFileResponse': str(result) if result else ''})
+        'saveFileResponse': str(''.join(result)) if result else ''})
     return response
     
 

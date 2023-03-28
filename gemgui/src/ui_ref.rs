@@ -1,4 +1,6 @@
 
+use std::time::Duration;
+
 use crate::Result;
 use crate::GemGuiError;
 use crate::JSMessageTx;
@@ -114,6 +116,16 @@ impl UiRef {
         ui.elements.contains_key(key)
     }
     
+    fn create_element(&self, id: &str, html_element: &str, parent: &Element) -> Result<Element> {
+        if id == ROOT_ID || self.contains_id(id) {
+            return GemGuiError::error("Bad id");
+        } 
+        UiData::insert_element(&self.ui, id);
+        let ui = self.ui.clone();
+        let element = Element::construct(id.to_string(), UiData::sender(&ui), ui);
+        element.create(html_element, parent);
+        Ok(element)
+    }
 
     /// Create a new element
     /// 
@@ -132,9 +144,42 @@ impl UiRef {
     /// `html_element` - refer to HTML id
     /// 
     /// `parent` - parent of element
-    pub fn add_element(&self, html_element: &str, parent: &Element) -> Result<Element> { 
-        self.add_element_with_id(&UiData::random_element_id(&self.ui), html_element, parent)
+    pub fn add_element<OptCB, CB>(&self, html_element: &str, parent: &Element, element_ready: OptCB) -> Result<Element> 
+    where
+    CB: FnMut(UiRef, Element) + Send + Clone + 'static,
+    OptCB: Into<Option<CB>> { 
+        self.add_element_with_id::<OptCB, CB>(&UiData::random_element_id(&self.ui), html_element, parent, element_ready)
     }
+
+    pub async fn add_element_async(&self, html_element: &str, parent: &Element) -> Result<Element> { 
+        self.add_element_with_id_async(&UiData::random_element_id(&self.ui), html_element, parent).await
+    }
+   
+
+    pub fn add_element_with_id<OptCB, CB>(&self, id: &str, html_element: &str, parent: &Element, element_ready: OptCB) -> Result<Element>
+    where
+    CB: FnMut(UiRef, Element) + Clone + Send + 'static,
+    OptCB: Into<Option<CB>>  {
+        eprintln!("Element {} to crete", &id);
+        let result = self.create_element(id, html_element, parent);
+        eprintln!("Element {} maybe created", &id);
+        match result {
+            Ok(element) => {
+                let inner = element.clone();
+                let cb = element_ready.into();
+                let foo = id.to_string();
+                if let Some(mut f) = cb {
+                    element.subscribe("created",
+                    move |ui, _| { 
+                        eprintln!("Element {} cretead", foo);
+                        f(ui, inner.clone())});
+                }
+                Ok(element)
+            },
+            Err(e) => Err(e)
+        }
+    }   
+
 
     /// Create a new element
     /// 
@@ -149,19 +194,23 @@ impl UiRef {
     /// `parent` - parent of element
     /// 
     /// 
-    pub fn add_element_with_id(&self, id: &str, html_element: &str, parent: &Element) -> Result<Element> { 
+    pub async fn add_element_with_id_async(&self, id: &str, html_element: &str, parent: &Element) -> Result<Element> { 
 
-        if id == ROOT_ID || self.contains_id(id) {
-            return GemGuiError::error("Bad id");
-        } 
+        let element = self.create_element(id, html_element, parent);
+        // Element creation is non pendigg and async in JS side
+        // it is very confusing if element is not available after this call, hence we wait
+        // There a ways to do wait - maybe preferred way is to wait in JS side, but this would do
+        for _i in 0..10 {
+            match self.exists(id).await {
+                Ok(ok) => if ok {
+                    return element
+                },
+                _ => ()
+            }
+            tokio::time::sleep(Duration::from_millis(100)).await;
+        }
 
-        UiData::insert_element(&self.ui, id);
-
-        let ui = self.ui.clone();
-        let element = Element::construct(id.to_string(), UiData::sender(&ui), ui);
-        element.create(html_element, parent);
-        
-        Ok(element)
+        GemGuiError::error(&format!("Element {} not constructed", id))
     }
     
 

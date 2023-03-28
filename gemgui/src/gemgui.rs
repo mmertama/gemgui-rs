@@ -677,13 +677,14 @@ pub fn window_application<CB, Fut>(
     where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
         Fut: Future<Output = ()> + Send + 'static {
             create_application(filemap, index_html, port, application_cb, |ui| {
+                ui.on_error(|ui, msg| {eprintln!("foo foo {msg}")});
                 ui.set_python_gui(title, width, height, parameters, flags);})
         }
 
 
 /// Default error function
 /// 
-/// Default function for ui.on_error
+/// Default function for [ui.on_error]
 /// Shows an error message and exits.
 /// 
 pub fn default_error(ui: UiRef, err_msg: String) {
