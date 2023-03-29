@@ -1,3 +1,4 @@
+use gemgui::element::Element;
 use gemgui::graphics::color::{name_to_rgb, style_to_name};
 
 use gemgui::ui_ref::UiRef;
@@ -761,10 +762,10 @@ async fn test_resource() {
 
 #[tokio::test]
 #[serial]
-async fn add_element() {
+async fn add_element_async() {
     let mut ui = setup();
     ui.on_start_async(move |ui| async move {
-        let el = ui.add_element("P", &ui.root()).unwrap();
+        let el = ui.add_element_async("P", &ui.root()).await.unwrap();
         assert!(ui.exists(el.id()).await.unwrap());
         let id = el.id().clone();
         assert!(id != "");
@@ -776,14 +777,42 @@ async fn add_element() {
 
 #[tokio::test]
 #[serial]
-async fn add_element_with_id() {
+async fn add_element() {
     let mut ui = setup();
     ui.on_start_async(move |ui| async move {
-        let el = ui.add_element_with_id("some_random_id", "br", &ui.root()).unwrap();
+        ui.add_element("P", &ui.root(), |ui: UiRef, el: Element| {
+            let id = el.id().clone();
+            assert!(id != "");
+            ui.exit();
+        }).unwrap();
+    });
+    ui.run().await.unwrap();
+}
+
+#[tokio::test]
+#[serial]
+async fn add_element_with_id_async() {
+    let mut ui = setup();
+    ui.on_start_async(move |ui| async move {
+        let el = ui.add_element_with_id_async("some_random_id", "br", &ui.root()).await.unwrap();
         assert_eq!(el.id(), "some_random_id");
         assert!(ui.exists(el.id()).await.unwrap());
         assert_eq!(ui.element("some_random_id").element_type().await.unwrap(), "br");    
         ui.exit();
+    });
+    ui.run().await.unwrap();
+}
+
+#[tokio::test]
+#[serial]
+async fn add_element_with_id() {
+    let mut ui = setup();
+    ui.on_start_async(move |ui| async move {
+        ui.add_element_with_id("some_random_id", "br", &ui.root(), |ui: UiRef, el: Element| {
+            assert_eq!(el.id(), "some_random_id");
+            ui.exit();
+        }).unwrap();
+       
     });
     ui.run().await.unwrap();
 }
@@ -830,7 +859,7 @@ async fn dynamic_exits() {
     ui.set_logging(true);
     ui.on_start_async(move |ui| async move {
         assert!(!ui.exists("some_random_id").await.unwrap());
-        let el = ui.add_element_with_id("some_random_id", "br", &ui.root()).unwrap();
+        let el = ui.add_element_with_id_async("some_random_id", "br", &ui.root()).await.unwrap();
         assert_eq!(el.id(), "some_random_id");
         assert!(ui.exists(el.id()).await.unwrap());
         tokio::time::sleep(Duration::from_millis(1000)).await;

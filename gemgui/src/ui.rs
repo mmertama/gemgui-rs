@@ -225,7 +225,7 @@ pub trait Ui : private::UserInterface {
     }
 
     /// Instantiate an element
-    /// It is expected that element is defined in HTML or added by `add_element`, see [add_element] how to create a non-exiting
+    /// It is expected that element is defined in HTML or added by `add_element`, see [UiRef::add_element_async] or [UiRef::add_element_async] how to create a non-exiting
     /// element. Please note that this function always success event there is no such element as this creates a light weight
     /// Rust side struct. You have to call some query function to get error or call some function to get an error callback. 
     /// 

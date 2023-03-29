@@ -1,6 +1,4 @@
 
-use std::time::Duration;
-
 use crate::Result;
 use crate::GemGuiError;
 use crate::JSMessageTx;
@@ -133,10 +131,10 @@ impl UiRef {
     /// 
     /// ```
     /// # use gemgui::ui_ref::UiRef;
+    /// # use gemgui::element::Element; 
     /// # use crate::gemgui::ui::Ui;
-    /// async fn some_function(ui: UiRef) {
-    ///     let el = ui.add_element("div", &ui.root()).unwrap();
-    ///     el.set_html("foo");
+    ///   fn some_function(ui: UiRef) {
+    ///     ui.add_element("div", &ui.root(), |_, el: Element| el.set_html("foo"));
     /// }
     /// ```
     ///  # Arguments
@@ -144,6 +142,13 @@ impl UiRef {
     /// `html_element` - refer to HTML id
     /// 
     /// `parent` - parent of element
+    /// 
+    /// `element_ready` - callback called upon element is created
+    /// 
+    ///  # Return
+    /// 
+    ///  Element created, please note that element creation may not be completed yet.
+    /// 
     pub fn add_element<OptCB, CB>(&self, html_element: &str, parent: &Element, element_ready: OptCB) -> Result<Element> 
     where
     CB: FnMut(UiRef, Element) + Send + Clone + 'static,
@@ -151,35 +156,36 @@ impl UiRef {
         self.add_element_with_id::<OptCB, CB>(&UiData::random_element_id(&self.ui), html_element, parent, element_ready)
     }
 
+    /// Create a new element
+    /// 
+    /// 
+    /// # Example
+    /// 
+    /// ```
+    /// # use gemgui::ui_ref::UiRef;
+    /// # use crate::gemgui::ui::Ui;
+    ///   async fn some_function(ui: UiRef) {
+    ///    let el =  ui.add_element_async("div", &ui.root()).await.unwrap();
+    ///     el.set_html("foo")
+    /// }
+    /// ```
+    /// 
+    ///  # Arguments
+    /// 
+    /// `id` - id of element - is expexted to be unique in the application context
+    /// 
+    /// `html_element` - refer to HTML id
+    /// 
+    /// `parent` - parent of element
+    /// 
+    /// 
+    /// # Return
+    /// 
+    ///  Element created
     pub async fn add_element_async(&self, html_element: &str, parent: &Element) -> Result<Element> { 
         self.add_element_with_id_async(&UiData::random_element_id(&self.ui), html_element, parent).await
     }
    
-
-    pub fn add_element_with_id<OptCB, CB>(&self, id: &str, html_element: &str, parent: &Element, element_ready: OptCB) -> Result<Element>
-    where
-    CB: FnMut(UiRef, Element) + Clone + Send + 'static,
-    OptCB: Into<Option<CB>>  {
-        eprintln!("Element {} to crete", &id);
-        let result = self.create_element(id, html_element, parent);
-        eprintln!("Element {} maybe created", &id);
-        match result {
-            Ok(element) => {
-                let inner = element.clone();
-                let cb = element_ready.into();
-                let foo = id.to_string();
-                if let Some(mut f) = cb {
-                    element.subscribe("created",
-                    move |ui, _| { 
-                        eprintln!("Element {} cretead", foo);
-                        f(ui, inner.clone())});
-                }
-                Ok(element)
-            },
-            Err(e) => Err(e)
-        }
-    }   
-
 
     /// Create a new element
     /// 
@@ -193,24 +199,70 @@ impl UiRef {
     /// 
     /// `parent` - parent of element
     /// 
+    /// `element_ready` - callback called upon element is created
+    ///  
+    ///  # Return
     /// 
+    ///  Element created, please note that element creation may not be completed yet.
+    /// 
+    pub fn add_element_with_id<OptCB, CB>(&self, id: &str, html_element: &str, parent: &Element, element_ready: OptCB) -> Result<Element>
+    where
+    CB: FnMut(UiRef, Element) + Clone + Send + 'static,
+    OptCB: Into<Option<CB>>  {
+        eprintln!("Element {} to crete", &id);
+        let result = self.create_element(id, html_element, parent);
+        eprintln!("Element {} maybe created", &id);
+        match result {
+            Ok(element) => {
+                let inner = element.clone();
+                let cb = element_ready.into();
+                if let Some(mut f) = cb {
+                    element.subscribe("created",
+                    move |ui, _| { 
+                        f(ui, inner.clone())});
+                }
+                Ok(element)
+            },
+            Err(e) => Err(e)
+        }
+    }   
+
+
+    /// Create a new element
+    /// 
+    ///  See more information [add_element](UiRef::add_element_async)
+    /// 
+    ///  # Arguments
+    /// 
+    /// `id` - id of element - is expexted to be unique in the application context
+    /// 
+    /// `html_element` - refer to HTML id
+    /// 
+    /// `parent` - parent of element
+    /// 
+    ///  # Return
+    /// 
+    ///  Element created
+    ///  
     pub async fn add_element_with_id_async(&self, id: &str, html_element: &str, parent: &Element) -> Result<Element> { 
 
         let element = self.create_element(id, html_element, parent);
-        // Element creation is non pendigg and async in JS side
-        // it is very confusing if element is not available after this call, hence we wait
-        // There a ways to do wait - maybe preferred way is to wait in JS side, but this would do
-        for _i in 0..10 {
-            match self.exists(id).await {
-                Ok(ok) => if ok {
-                    return element
-                },
-                _ => ()
-            }
-            tokio::time::sleep(Duration::from_millis(100)).await;
+
+        // since subscribe function "could" be called multiple times oneshot cannot be used
+        let (tx, mut rx) = tokio::sync::mpsc::channel::<bool>(1);
+
+        if element.is_ok() {
+            let el = element.clone().unwrap();
+            el.subscribe_async("created",
+                     |_, _| async move {
+                        tx.send(true).await.expect("Fatal error");
+                    });
         }
 
-        GemGuiError::error(&format!("Element {} not constructed", id))
+        match rx.recv().await {
+            Some(_) => element,
+            None =>   GemGuiError::error(&format!("Element {id} not constructed"))
+        }    
     }
     
 

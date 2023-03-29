@@ -38,6 +38,22 @@ fn make_filters(filters: &[(&str, std::vec::Vec<&str>)]) -> JSMap {
     ft
 }
 
+    /// Open file dialog
+    /// 
+    /// # Arguments
+    /// 
+    /// `ui` - UiRef
+    /// 
+    /// `dir` - Initial view directory
+    /// 
+    /// `filters` - Filters for dialog, 
+    ///  List of tuples having a filter name and filters
+    ///  e.g. ["Text", vec!("*.txt", "*.text")]
+    /// 
+    /// # Return
+    /// 
+    /// Path to selected file
+    /// 
 pub async fn open_file(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&str>)]) -> Result<PathBuf, GemGuiError>  {
     let ft = make_filters(filters);
     let mut properties = JSMap::new();
@@ -48,10 +64,26 @@ pub async fn open_file(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&
         let path = Path::new(&file_name);
         return Ok(path.to_path_buf());
     }
-    return Err(GemGuiError::Err(format!("Invalid type")));
-
+    Err(GemGuiError::Err("Invalid type".to_string()))
 }
 
+
+    /// Open files dialog
+    /// 
+    /// # Arguments
+    /// 
+    /// `ui` - UiRef
+    /// 
+    /// `dir` - Initial view directory
+    /// 
+    /// `filters` - Filters for dialog, 
+    ///  List of tuples having a filter name and filters
+    ///  e.g. ["Text", vec!("*.txt", "*.text")]
+    /// 
+    /// # Return
+    /// 
+    /// Vector of paths to selected files
+    /// 
 pub async fn open_files(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&str>)]) -> Result<Vec<PathBuf>, GemGuiError>  {
     let ft = make_filters(filters);
     let mut properties = JSMap::new();
@@ -67,10 +99,22 @@ pub async fn open_files(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<
         
         return Ok(paths);
     }
-    return Err(GemGuiError::Err(format!("Invalid type")));
-
+    Err(GemGuiError::Err("Invalid type".to_string()))
 }
 
+
+    /// Open directory dialog
+    /// 
+    /// # Arguments
+    /// 
+    /// `ui` - UiRef
+    /// 
+    /// `dir` - Initial view directory
+    /// 
+    /// # Return
+    /// 
+    /// Path to selected directory
+    /// 
 pub async fn open_dir(ui: &UiRef, dir: &Path) -> Result<PathBuf, GemGuiError>  {
     let mut properties = JSMap::new();
     properties.insert("dir".to_string(), JSType::from(dir.to_string_lossy()));
@@ -79,9 +123,26 @@ pub async fn open_dir(ui: &UiRef, dir: &Path) -> Result<PathBuf, GemGuiError>  {
         let path = Path::new(&file_name);
         return Ok(path.to_path_buf());
     }
-    return Err(GemGuiError::Err(format!("Invalid type")));
+    Err(GemGuiError::Err("Invalid type".to_string()))
 }
 
+
+    /// Open save dialog
+    /// 
+    /// # Arguments
+    /// 
+    /// `ui` - UiRef
+    /// 
+    /// `dir` - Initial view directory
+    /// 
+    /// `filters` - Filters for dialog, 
+    ///  List of tuples having a filter name and filters
+    ///  e.g. ["Text", vec!("*.txt", "*.text")]
+    /// 
+    /// # Return
+    /// 
+    /// Path to selected or created file 
+    /// 
 pub async fn save_file(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&str>)]) -> Result<PathBuf, GemGuiError>  {
     let ft = make_filters(filters);
     let mut properties = JSMap::new();
@@ -90,10 +151,9 @@ pub async fn save_file(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&
     let file_name = dialog(ui, DialogType::SaveFile, properties).await?;
     if let DialogValue::FileName(file_name) = file_name {
         let path = Path::new(&file_name);
-        eprintln!("foo save {:#?}", path);
         return Ok(path.to_path_buf());
     }
-    return Err(GemGuiError::Err(format!("Invalid type")));
+    Err(GemGuiError::Err("Invalid type".to_string()))
 
 }
 

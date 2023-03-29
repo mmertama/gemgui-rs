@@ -5,9 +5,6 @@ use crate::{graphics::{color as Color}, ui_data::UiData, Rect, Result};
 use futures::Future;
 use crate::{element::Element, ui_ref::UiRef, JSMessageTx, graphics::bitmap::BitmapData};
 
-use crate::Value;
-
-
 // this value depends if websocket payload size
 // in theory is big one (i.e. huge 2^63), but in practice it seems to be 
 // capped. 64 / 63 was ok - but we try bigger values 
@@ -405,7 +402,7 @@ impl Canvas {
             let id_name = name.clone();
             let url = url.to_string();
             let cb = image_added_cb.into();
-            let result = self.ui().add_element_with_id(&name, "IMG", self, move |ui, el: Element| {
+            let result = self.ui().add_element_with_id(&name, "IMG", self, move |_, el: Element| {
                 let cb = cb.clone();
                 if let Some(mut f) = cb {
                     let id_name = id_name.clone();

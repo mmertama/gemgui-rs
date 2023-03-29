@@ -106,7 +106,7 @@ pub mod ui_ref;
 /// Graphics
 pub mod graphics;
 /// Dialogs
-pub mod dialogs;
+pub mod window;
 
 /// Resource pack for build.rs
 pub mod respack;
@@ -677,7 +677,7 @@ pub fn window_application<CB, Fut>(
     where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
         Fut: Future<Output = ()> + Send + 'static {
             create_application(filemap, index_html, port, application_cb, |ui| {
-                ui.on_error(|ui, msg| {eprintln!("foo foo {msg}")});
+                /*ui.on_error(|ui, msg| {eprintln!("foo foo {msg}")});*/
                 ui.set_python_gui(title, width, height, parameters, flags);})
         }
 

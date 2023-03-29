@@ -4,8 +4,7 @@ use gemgui::element::Element;
 use gemgui::ui::Ui;
 use gemgui::ui_ref::UiRef;
 use gemgui::{self, GemGuiError, event};
-use gemgui::dialogs;
-use home;
+use gemgui::window;
 use std::fs;
 
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
@@ -14,10 +13,9 @@ async fn remove_files(ui: &UiRef) {
 
   let files = ui.by_class("file_entry").await;
 
-  match files {
-    Ok(files) => files.iter().for_each(|e| e.remove()),
-    _=>()
-  }
+  if let Ok(files) = files {
+     files.iter().for_each(|e| e.remove())
+    }
 
 }
 
@@ -26,7 +24,7 @@ async fn amain(ui: UiRef) {
     // pick a files and show its content
     ui.element("open_file").subscribe_async(event::CLICK, |ui, _| async move {
 
-      let result = dialogs::open_file(&ui,
+      let result = window::open_file(&ui,
         &home::home_dir().expect("Cannot find home"),
         &[("Text", vec!("*.txt", "*.text"))]).await;
 
@@ -34,7 +32,7 @@ async fn amain(ui: UiRef) {
 
         Ok(file_name) => {
 
-          let contents = fs::read_to_string(&file_name).expect(&format!("Cannot open {}", &file_name.to_string_lossy()));
+          let contents = fs::read_to_string(&file_name).unwrap_or_else(|_| panic!("Cannot open {}", &file_name.to_string_lossy()));
           ui.element("file_content").set_html(&contents)
         },
 
@@ -46,7 +44,7 @@ async fn amain(ui: UiRef) {
     // pick files and show selection
     ui.element("open_files").subscribe_async(event::CLICK, |ui, _| async move {
 
-        let result = dialogs::open_files(
+        let result = window::open_files(
           &ui, &home::home_dir().expect("Cannot find home"), &[]).await;
 
         remove_files(&ui).await;
@@ -57,7 +55,7 @@ async fn amain(ui: UiRef) {
 
           Ok(file_names) => file_names.iter().for_each(move |e| {
             let name = e.to_string_lossy().to_string();
-            ui.add_element("li", &ul, move |ui, el: Element| {
+            ui.add_element("li", &ul, move |_, el: Element| {
               el.set_attribute("class", "file_entry"); // set the class so they can be removed easy
               el.set_html(&name);}).expect("Cannot create element");
             }),
@@ -69,7 +67,7 @@ async fn amain(ui: UiRef) {
     // open dir and show its listing
     ui.element("open_dir").subscribe_async(event::CLICK, |ui, _| async move {
 
-      let result = dialogs::open_dir(
+      let result = window::open_dir(
         &ui, &home::home_dir().expect("Cannot find home")).await;
 
       remove_files(&ui).await;
@@ -80,12 +78,12 @@ async fn amain(ui: UiRef) {
 
         Ok(file_name) => {
           
-          let contents = fs::read_dir(&file_name).expect(&format!("Cannot open {}", &file_name.to_string_lossy()));
+          let contents = fs::read_dir(&file_name).unwrap_or_else(|_| panic!("Cannot open {}", &file_name.to_string_lossy()));
 
           contents.for_each(|e|{
             if let Ok(entry) = e {
               let entry_name = entry.file_name().to_string_lossy().to_string();
-              ui.add_element("li", &ul, move |ui, el: Element| {
+              ui.add_element("li", &ul, move |_, el: Element| {
                 el.set_attribute("class", "file_entry"); // set the class so they can be removed easy
                 el.set_html(&entry_name);
               }).expect("Cannot create li for file");
@@ -102,7 +100,7 @@ async fn amain(ui: UiRef) {
     // Save text from text Area
     ui.element("save_file").subscribe_async(event::CLICK, |ui, _| async move {
       
-      let result = dialogs::save_file(&ui,
+      let result = window::save_file(&ui,
         &home::home_dir().expect("Cannot find home"),
         &[("Text", vec!("*.txt", "*.text"))]).await;
 
@@ -110,7 +108,7 @@ async fn amain(ui: UiRef) {
 
       match result {
         Ok(file_name) => {
-          fs::write(&file_name, text).expect(&format!("Cannot write to {}", &file_name.to_string_lossy()));
+          fs::write(&file_name, text).unwrap_or_else(|_| panic!("Cannot write to {}", &file_name.to_string_lossy()));
         },
 
         Err(e) => eprintln!("On file save {e}"),
