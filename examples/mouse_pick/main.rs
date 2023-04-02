@@ -99,14 +99,15 @@ async fn amain(ui: UiRef) {
 fn main() -> Result<(), GemGuiError> {
     let fm = gemgui::filemap_from(RESOURCES);
     gemgui::window_application(fm,
-       "index.html",
-        gemgui::next_free_port(30000u16),
-        |ui| async {amain(ui).await},
-        "Pick",
-        900,
-        500,
-        &[],
-        0)
+      "index.html",
+      gemgui::next_free_port(30000u16),
+      |ui| async {amain(ui).await},
+      "Pick",
+      900,
+      500,
+      &[],
+      0,
+      None)
     }
     
 

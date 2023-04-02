@@ -1,7 +1,160 @@
 use core::fmt;
 use std::path::{Path, PathBuf};
 
+use crate::event::Event;
+use crate::ui::Ui;
 use crate::{ui_ref::UiRef, GemGuiError, JSMap, JSType, ui_data::UiData, JSMessageTx, ui::private::UserInterface};
+
+use futures::Future;
+
+
+/// Application menu
+/// Use Builder pattern to create menu contents
+#[derive(Clone)]
+pub struct Menu {
+    items: Vec<JSType>,
+} 
+
+impl Default for Menu {
+    fn default() -> Self {
+        Self::new()
+         }
+    }
+
+pub (crate) static MENU_ELEMENT: &str = "app menu";
+static MENU_EVENT: &str = "menu_event";
+
+#[derive(serde::Deserialize, serde::Serialize, Debug, Default)]
+struct MenuItems {
+    #[serde(rename = "type")]
+    _type: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    action_id: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    title: Option<String>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    sub_menu: Option<Vec<JSType>>,
+}
+
+impl Menu {
+
+    
+    /// Create an application menu
+    /// 
+    /// # Arguments
+    /// 
+    /// `ui` - UiRef
+    /// 
+    /// # Return
+    /// 
+    /// Menu 
+    /// 
+    pub fn new() -> Menu {
+        Menu {items: Vec::new()}
+    }
+
+    /// Add a sepator in menu
+    /// 
+    /// # Return
+    /// 
+    /// Menu 
+    /// 
+    pub fn add_separator(mut self) -> Menu{
+        let item = MenuItems {
+            _type: "separator".to_string(),
+            ..Default::default()
+        };
+        let json = serde_json::to_value(item).unwrap();
+        self.items.push(json);
+        self
+    }
+
+    /// Add a menu item
+    /// 
+    /// # Arguments
+    /// 
+    /// `title` - Menu item name
+    /// 
+    /// `action_id` - An identifier get as menu event properties 
+    /// 
+    /// # Return
+    /// 
+    /// Menu 
+    /// 
+    pub fn add_item(mut self, title: &str, action_id: &str) -> Menu {
+        let item = MenuItems {
+            _type: "action".to_string(),
+            title: Some(title.to_string()),
+            action_id: Some(action_id.to_string()),
+            ..Default::default()
+        };
+        let json = serde_json::to_value(item).unwrap();
+        self.items.push(json);
+        self
+    }
+
+    /// Add a sub menu
+    /// 
+    /// # Arguments
+    /// 
+    /// `title` - Sub menu name
+    /// 
+    /// `menu` - A sub menu 
+    /// 
+    /// # Return
+    /// 
+    /// Menu 
+    /// 
+    pub fn add_sub_menu(mut self, title: &str, menu: Menu) -> Menu {
+        let item = MenuItems {
+            _type: "sub_menu".to_string(),
+            title: Some(title.to_string()),
+            sub_menu: Some(menu.items),
+            ..Default::default()
+        };
+        let json = serde_json::to_value(item).unwrap();
+        self.items.push(json);
+        self
+    }
+
+    /// Subscribe menu events
+    /// 
+    /// # Arguments
+    /// 
+    ///  `ui` - Ui reference
+    /// 
+    /// `callback` - callback on menu event
+    /// 
+    /// 
+    pub fn subscribe<CB>(ui: &UiRef, callback: CB) 
+    where CB: FnMut(UiRef, &str) + Send + Clone + 'static {
+        let element_cb = move |ui: UiRef, event: Event| {
+                let mut callback = callback.clone();
+                let id = event.property_str("menu_id").expect("Invalid event");
+                callback(ui, id)
+            };    
+            ui.element(MENU_ELEMENT).subscribe(MENU_EVENT, element_cb)
+    }
+
+    /// See [subscribe](Self::subscribe)
+    pub fn subscribe_async<CB, Fut>(ui: &UiRef, callback: CB)
+     where CB: FnOnce(UiRef, &str)-> Fut + Send + Clone + 'static,
+     Fut: Future<Output =  ()> + Send +  'static {
+            let element_cb = |ui: UiRef, event: Event| async move {
+            let id = event.property_str("menu_id").expect("Invalid event");
+            callback(ui, id).await
+        };
+        ui.element(MENU_ELEMENT).subscribe_async(MENU_EVENT, element_cb)
+    }
+
+
+   #[allow(clippy::inherent_to_string)]
+   pub (crate) fn to_string(&self) -> String {
+        serde_json::to_string(&self.items).unwrap()
+   } 
+
+}
+
 
 enum DialogType {
     OpenFile,

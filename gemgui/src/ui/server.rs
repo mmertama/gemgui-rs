@@ -21,6 +21,8 @@ use tokio::sync::mpsc::Sender as SubscriptionSender;
 
 use tokio::sync::mpsc as MPSC;
 
+use futures::Future;
+
 use crate::Filemap;
 use crate::JSMessageTx;
 use crate::JSType;
@@ -265,8 +267,9 @@ impl WSServer {
     }
 
     /// Run 
-    pub fn run<F>(&self, on_start: F) -> Option<tokio::task::JoinHandle<()>>
-    where F: FnOnce(u16) -> bool {
+    pub async fn run<F, Fut>(&self, on_start: F) -> Option<tokio::task::JoinHandle<()>>
+    where   F: FnOnce(u16) -> Fut + Send + 'static,
+            Fut: Future<Output = bool> + Send + 'static {
 
         let fm = self.filemap.clone();
         
@@ -322,7 +325,7 @@ impl WSServer {
         let fut_srv = tokio::spawn(fut);
 
         // Start browser Ui after server is spawned
-        if !on_start(self.port) {
+        if ! on_start(self.port).await {
             eprintln!("Start failed, exit");
             return None; // early end
         }

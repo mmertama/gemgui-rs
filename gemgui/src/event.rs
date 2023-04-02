@@ -40,8 +40,6 @@ pub static FOCUS_IN: &str = "focusin";
 pub static FOCUS_OUT: &str = "focusout";
 
 
-
-
 /// Ui Event
 #[derive(Clone)]
 pub struct Event {

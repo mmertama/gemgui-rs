@@ -4,7 +4,7 @@ use gemgui::element::Element;
 use gemgui::ui::Ui;
 use gemgui::ui_ref::UiRef;
 use gemgui::{self, GemGuiError, event};
-use gemgui::window;
+use gemgui::window::{self, Menu};
 use std::fs;
 
 include!(concat!(env!("OUT_DIR"), "/generated.rs"));
@@ -20,6 +20,17 @@ async fn remove_files(ui: &UiRef) {
 }
 
 async fn amain(ui: UiRef) {
+
+  // subscribe and handle menu events
+    Menu::subscribe(&ui, |ui, id| {
+      if id == "do_exit" {
+        eprintln!("App exit");
+        ui.exit();
+      }
+      if id == "do_about" {
+        ui.alert("This is a menu about!");
+      }
+    });
 
     // pick a files and show its content
     ui.element("open_file").subscribe_async(event::CLICK, |ui, _| async move {
@@ -119,11 +130,23 @@ async fn amain(ui: UiRef) {
 
 fn main() -> Result<(), GemGuiError> {
     let fm = gemgui::filemap_from(RESOURCES);
+    
+    let file_menu = Menu::new().
+      add_item("Exit", "do_exit");
+
+      let about_menu = Menu::new().
+      add_item("About", "do_about");  
+    
+    let menu = Menu::new().
+      add_sub_menu("File", file_menu).
+      add_sub_menu("About", about_menu);
+
     gemgui::window_application(fm,
        "dialogs.html",
         gemgui::next_free_port(30000u16),
         |ui| async {amain(ui).await},
-        "Dialogs", 800, 650, &[("debug", "True")], 0
+        "Dialogs", 800, 650, &[("debug", "True")], 0,
+        menu
       )
     }
     

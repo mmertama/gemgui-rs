@@ -94,7 +94,7 @@ fn main() -> Result<(), GemGuiError> {
        "index.html",
         gemgui::next_free_port(30000u16),
         |ui| async {amain(ui).await},
-      "Zoom Rotator", 800, 650, &[], 0)
+      "Zoom Rotator", 800, 650, &[], 0, None)
     /*gemgui::application(fm,
         "index.html",
          gemgui::next_free_port(30000u16),

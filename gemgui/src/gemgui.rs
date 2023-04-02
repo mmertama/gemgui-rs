@@ -57,11 +57,21 @@
 //! # use gemgui::GemGuiError;
 //! # use gemgui::Result;
 //! # use gemgui::ui_ref::UiRef;
+//! # use gemgui::window::Menu;
 //! # const RESOURCES: &[(&'static str, &'static str)] = &[]; 
 //! fn main() -> Result<()> { 
 //!     let fm = gemgui::filemap_from(RESOURCES);
+//!     let file_menu = Menu::new().
+//!     add_item("Exit", "do_exit");
+//! 
+//!     let about_menu = Menu::new().
+//!     add_item("About", "do_about");  
+//! 
+//!     let menu = Menu::new().
+//!     add_sub_menu("File", file_menu).
+//!     add_sub_menu("About", about_menu);
 //!     gemgui::window_application(fm, "hello.html", 12345,
-//!     |ui| async {my_app(ui).await}, "My App", 500, 500, &[], 0)
+//!     |ui| async {my_app(ui).await}, "My App", 500, 500, &[], 0, menu)
 //! }
 //! 
 //! async fn my_app(ui: UiRef) {
@@ -101,11 +111,11 @@ pub mod ui;
 pub mod element;
 /// Event
 pub mod event;
-/// Ui Reference
+/// Ui reference
 pub mod ui_ref;
 /// Graphics
 pub mod graphics;
-/// Dialogs
+/// Dialogs and furnitures
 pub mod window;
 
 /// Resource pack for build.rs
@@ -127,6 +137,7 @@ use std::collections::HashMap;
 use futures::Future;
 use ui::Gui;
 use ui_ref::UiRef;
+use window::Menu;
 
 use crate::ui::Ui;
 
@@ -655,7 +666,8 @@ where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
 ///        900,
 ///        500,
 ///        &[("debug", "True")],
-///        0)
+///        0,
+///        None)
 ///    }
 /// 
 /// async fn my_main(ui: UiRef) {
@@ -664,7 +676,7 @@ where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
 /// ```
 /// 
 #[allow(clippy::too_many_arguments)]
-pub fn window_application<CB, Fut>(
+pub fn window_application<CB, Fut, OptionalMenu>(
         filemap: Filemap,
         index_html: &str,
         port: u16,
@@ -673,12 +685,21 @@ pub fn window_application<CB, Fut>(
         width:u32,
         height: u32,
         parameters: &[(&str, &str)],
-        flags: u32)  -> Result<()> 
+        flags: u32,
+        menu: OptionalMenu)  -> Result<()> 
     where CB: FnMut(UiRef)-> Fut + Send + Clone + 'static,
-        Fut: Future<Output = ()> + Send + 'static {
-            create_application(filemap, index_html, port, application_cb, |ui| {
-                /*ui.on_error(|ui, msg| {eprintln!("foo foo {msg}")});*/
-                ui.set_python_gui(title, width, height, parameters, flags);})
+        Fut: Future<Output = ()> + Send + 'static,
+        OptionalMenu: Into<Option<Menu>> {
+            let menu = menu.into();
+            match menu {
+                Some(menu) => {
+                    create_application(filemap, index_html, port, application_cb,  move |ui| {
+                        let menu = menu.clone();
+                        ui.set_python_gui(title, width, height, parameters, flags, menu);})
+                },
+                None => create_application(filemap, index_html, port, application_cb,  move |ui| {
+                    ui.set_python_gui(title, width, height, parameters, flags, None);})
+            }       
         }
 
 

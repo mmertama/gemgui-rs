@@ -1,6 +1,7 @@
 pub(crate) mod server;
 mod utils;
 
+use crate::Menu;
 use crate::Result;
 
 use core::fmt;
@@ -409,26 +410,38 @@ impl Gui {
 
     /// URL of Ui
     pub fn address(&self) -> String {
+        // currently only localhost - but remote UI in future easily possible!
         format!("http://127.0.0.1:{}/{}", self.server.port(), self.index_html)
     }
 
-    fn run_process(cmd: (String, Vec<String>)) -> bool {
+    async fn run_process(cmd: (String, Vec<String>)) -> bool {
    
         let output = Command::new(&cmd.0)
             .args(&cmd.1)
             .spawn();
 
+        // we wait a moment so try_wait knows if spawn has really succeed
+        tokio::time::sleep(Duration::from_millis(1500)).await;
+
         match output {
-            Ok(_child) => {true}, // here we get handle to spawned UI - not used now as exit is done nicely
+            Ok(mut child) => {
+                match child.try_wait() {
+                    Ok(status) => match status {
+                        None => return true,
+                        Some(err) => eprintln!("Spawn early exit: {err}"),
+                    },
+                    Err(err) => eprintln!("Spawn failed: {err}"),
+                };
+            }, // here we get handle to spawned UI - not used now as exit is done nicely
             Err(e) => {
                 if cmd.1.is_empty() {
                     eprintln!("Error while spawning call:'{}' error:{} - URL is missing!", cmd.0, e);
                 } else {
                     eprintln!("Error while spawning call:'{}' params:'{:#?}' error:{}", cmd.0, cmd.1, e);
                 }
-                false
             }
-        } 
+        }; 
+        false
     }
 
 
@@ -454,12 +467,14 @@ impl Gui {
     /// `height` - window height
     /// `python_parameters` - parameters passed to pywebview e.g "{"debug", true}"
     /// `flags` - See [py_ui_flags](py_ui_flags)
-    pub fn set_python_gui(&mut self,
+    pub fn set_python_gui<OptionalMenu>(&mut self,
         title: &str,
         width:u32,
         height: u32,
         python_parameters: &[(&str, &str)],
-        flags: u32) -> bool {
+        flags: u32,
+        menu: OptionalMenu) -> bool 
+        where OptionalMenu: Into<Option<Menu>>{
             let py = utils::python3();
             if py.is_none() {
                 return false;
@@ -477,7 +492,7 @@ impl Gui {
             let py_src = base64::decode(py_src).unwrap();
             let py_src = String::from_utf8_lossy(&py_src);
 
-            let params = vec!(
+            let mut params = vec!(
                 "-c".to_string(),
                 format!("{py_src}"),
                 format!("--gempyre-url={}", self.address()),
@@ -486,6 +501,12 @@ impl Gui {
                 format!("--gempyre-title={title}"),
                 format!("--gempyre-extra={}", py_pa.join(";")), 
                 format!("--gempyre-flags={flags}"));
+
+            let menu = menu.into();
+            if menu.is_some() {
+                params.push(format!("--gempyre-menu={}", menu.unwrap().to_string()));
+            }    
+
             let path = py.unwrap().to_str().unwrap().to_string();
 
             self.set_gui_command_line(&path, &params);
@@ -509,7 +530,7 @@ impl Gui {
         };
 
         let on_start = move |_| {Self::run_process(cmd)};
-        let server_wait = self.start_server(on_start);
+        let server_wait = self.start_server(on_start).await;
         if server_wait.is_none() {
             return GemGuiError::error("Starting server failed");
         }
@@ -658,9 +679,10 @@ impl Gui {
         Some(val.0.clone())
     }
 
-    fn start_server<F>(&self, on_start: F) -> Option<tokio::task::JoinHandle<()>>
-    where F: FnOnce(u16) -> bool {
-        self.server.run(on_start)
+    async fn start_server<F, Fut>(&self, on_start: F) -> Option<tokio::task::JoinHandle<()>>
+    where F: FnOnce(u16) -> Fut + Send + 'static,
+        Fut: Future<Output = bool> + Send + 'static {
+        self.server.run(on_start).await
     }
 
     

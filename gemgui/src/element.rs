@@ -132,7 +132,7 @@ impl Element {
         };
         UiData::add_subscription(&self.ui, &self.id, name, callback);
 
-        if name != "created" { // created are not subscribed - come when created
+        if name != "created" && self.id() != crate::window::MENU_ELEMENT { // created are not subscribed - come when created. MENU_ELEMENT is not HTML
             let throttle = throttle.as_millis().to_string();   
             let msg =  JSMessageTx {
                 element: self.id(),

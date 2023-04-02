@@ -8,6 +8,7 @@ import websockets
 import re
 import argparse
 import ast
+import webview.menu
 
 '''
 import logging
@@ -85,6 +86,64 @@ def save_file_dialog(window, params, ex_id):
         'extension_id': ex_id,
         'saveFileResponse': str(''.join(result)) if result else ''})
     return response
+
+
+def menu_call(menu_id):
+    async def do_call():
+        response = json.dumps({
+            'type': 'event',
+            'event': 'menu_event',
+            'element': 'app menu', # this should be illegal HTML id
+            'properties': {'menu_id': menu_id}})
+        await extender_socket.send(response)
+    
+    asyncio.run(do_call())
+        
+
+def test_type(var_, type_):
+    if not isinstance(var_, type_):
+        raise 'Bad variable' + type(var_) 
+
+
+def create_menu(menu_def):
+    menu = []
+    for menu_item in menu_def:
+        test_type(menu_item, dict)
+        type = menu_item['type']
+        if type == 'separator':
+            menu.append(webview.menu.MenuSeparator())
+        elif type == 'sub_menu':
+            title = menu_item['title']
+            test_type(title, str)
+            sub_menu = menu_item['sub_menu']
+            test_type(sub_menu, list)
+            sub_menu_list = create_menu(sub_menu)
+            menu.append(webview.menu.Menu(title, sub_menu_list))
+        elif type == 'action':
+            title = menu_item['title']
+            test_type(title, str)
+            action_id = menu_item['action_id']
+            test_type(action_id, str)
+            menu.append(webview.menu.MenuAction(
+                title,
+                lambda: menu_call(action_id)
+            ))
+        else:
+            raise("Bad menu type ", type)
+    return menu    
+
+
+def add_menu(menu_def):
+    try:
+        menu = json.loads(menu_def)
+        return create_menu(menu)
+    except UnicodeDecodeError as e:
+        print('UnicodeDecodeError on menu:', e, '\nWhen parsing:', menu_def, file=sys.stderr)
+    except json.decoder.JSONDecodeError as e:
+        print('JSONDecodeError on menu:', e, '\nWhen parsing:', menu_def, file=sys.stderr)
+    except Exception as e:
+        print('Error on menu:', e, '\nWhen parsing:', menu_def, file=sys.stderr)    
+    return []       
     
 
 def resize(window, params):
@@ -112,6 +171,8 @@ def on_show(window, host, port):
                                     close_timeout=None,
                                     ping_interval=None,
                                     compression=None) as ws:
+            global extender_socket
+            extender_socket = ws
             nonlocal window_destroyed
             loop = asyncio.get_event_loop()
             #receive = loop.create_task(ws.recv())
@@ -214,7 +275,6 @@ def on_show(window, host, port):
                 if call_id == 'openDir':
                     response = open_dir_dialog(window, params, ex_id)            
 
-
                 if response:
                     await ws.send(response)
 
@@ -255,6 +315,7 @@ def main():
     parser.add_argument('--gempyre-flags', type=int)
    # parser.add_argument('url', type=str)
     parser.add_argument('-c', action='store_true') # clean off
+    parser.add_argument('--gempyre-menu', type=str)
 
     try:
         args = parser.parse_args()
@@ -277,6 +338,12 @@ def main():
 
     if args.gempyre_flags:
         flags = args.gempyre_flags
+
+    menu = []    
+
+    if args.gempyre_menu:
+        menu = add_menu(args.gempyre_menu)
+
 
     if sys.platform == 'win32':
         extra['gui'] = 'cef'
@@ -310,7 +377,7 @@ def main():
     else:
         window.shown += lambda: on_show(window, uri.hostname, uri.port)
         window.closing += on_close
-    webview.start(**extra)
+    webview.start(menu=menu, **extra)
 
     
 if __name__ == '__main__':

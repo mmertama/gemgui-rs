@@ -14,7 +14,7 @@ async fn main() -> Result<(), GemGuiError> {
     let fm = gemgui::filemap_from(RESOURCES);
     let mut ui = Gui::new(fm, "hello.html", gemgui::next_free_port(30000u16)).unwrap();
     // use python ui
-    ui.set_python_gui("Basic", 500, 600, &[("debug", "True")], 0);
+    ui.set_python_gui("Basic", 500, 600, &[("debug", "True")], 0, None);
     ui.set_logging(true);
 
     let canvas = Canvas::new(&ui.element("canvas"));
