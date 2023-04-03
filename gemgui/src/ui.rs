@@ -52,6 +52,7 @@ include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 // batch commands
 pub (crate) static BATCH_BEGIN: &str = "batch_begin";
 pub (crate) static BATCH_END: &str = "batch_end";  
+pub (crate) static CLOSE_REQUEST: &str = "close_request";
 
 
 // ##known issues:## 
@@ -360,7 +361,7 @@ impl Gui {
 
     pub fn new(user_map : Filemap, index_html: &str, port: u16) -> Result<Self> {
         if ! port_scanner::local_port_available(port) {
-            return Err(GemGuiError::Err(format!("Port {port} is not available")));
+            return GemGuiError::error(format!("Port {port} is not available"));
         }
         let mut filemap = user_map;
         for resource in RESOURCES {
@@ -373,7 +374,7 @@ impl Gui {
         }
         
         if ! filemap.contains_key(index_html) {
-            return Err(GemGuiError::Err(format!("Error {index_html}, not found")));
+            return GemGuiError::error(format!("Error {index_html}, not found"));
         }
 
         let filemap = Arc::new(Mutex::new(filemap));
@@ -414,7 +415,7 @@ impl Gui {
         format!("http://127.0.0.1:{}/{}", self.server.port(), self.index_html)
     }
 
-    async fn run_process(cmd: (String, Vec<String>)) -> bool {
+    async fn run_process(cmd: (String, Vec<String>)) -> Result<bool> {
    
         let output = Command::new(&cmd.0)
             .args(&cmd.1)
@@ -427,21 +428,27 @@ impl Gui {
             Ok(mut child) => {
                 match child.try_wait() {
                     Ok(status) => match status {
-                        None => return true,
-                        Some(err) => eprintln!("Spawn early exit: {err}"),
+                        None => Ok(true),
+                        Some(err) => {
+                            if err.code().unwrap_or(0) != 0 {
+                                eprintln!("Spawned process {} not running {err}", cmd.0);
+                                Ok(false)
+                            } else {
+                                Ok(true)    // OSX uses 'open' app to spawn browser, hence it may have ended, we just rely on error code
+                            }
+                        },
                     },
-                    Err(err) => eprintln!("Spawn failed: {err}"),
-                };
+                    Err(err) => GemGuiError::error(format!("Spawn process failed: {err}")),
+                }
             }, // here we get handle to spawned UI - not used now as exit is done nicely
             Err(e) => {
                 if cmd.1.is_empty() {
-                    eprintln!("Error while spawning call:'{}' error:{} - URL is missing!", cmd.0, e);
+                    GemGuiError::error(format!("Error while spawning call:'{}' error:{} - URL is missing!", cmd.0, e))
                 } else {
-                    eprintln!("Error while spawning call:'{}' params:'{:#?}' error:{}", cmd.0, cmd.1, e);
+                    GemGuiError::error(format!("Error while spawning call:'{}' params:'{:#?}' error:{}", cmd.0, cmd.1, e))
                 }
             }
-        }; 
-        false
+        } 
     }
 
 
@@ -513,23 +520,48 @@ impl Gui {
             true
         }
 
+    fn default_start_cmd(&self) -> Result<(String, Vec<String>)> {
+        let start_cmd = utils::html_file_launch_cmd();
+        if start_cmd.is_none() {
+            return GemGuiError::error("Cannot find a default application");
+        }
+        let mut start_cmd = start_cmd.unwrap();
+        start_cmd.1.push(self.address());
+        Ok(start_cmd)
+    }
+
 
     /// Start event loop
     pub async fn run(&mut self) -> Result<()> {
+        static DEFAULT_ERROR: &str = "Cannot fallback to default";
+
+        let default_cmd = self.default_start_cmd();
+
         let cmd = match &self.start_cmd {
             Some(v) => v.clone(),
-            None =>  {
-                let start_cmd = utils::html_file_launch_cmd();
-                if start_cmd.is_none() {
-                    return GemGuiError::error("Cannot find a default application");
-                }
-                let mut start_cmd = start_cmd.unwrap();
-                start_cmd.1.push(self.address());
-                start_cmd
-            },
+            None => default_cmd.clone().expect(DEFAULT_ERROR),
         };
 
-        let on_start = move |_| {Self::run_process(cmd)};
+        let on_start = move |_| async move {
+            let success = match Self::run_process(cmd.clone()).await {
+                Ok(success) => {
+                    if ! success {
+                        let default_cmd = default_cmd.expect(DEFAULT_ERROR);
+                        if cmd.0 != default_cmd.0.clone() {
+                            let default_ok = Self::run_process(default_cmd).await.unwrap_or_else(|e| panic!("{e}"));
+                            eprintln!("Requested UI failed, falling back to default: {default_ok}");
+                        }
+                    }
+                true
+                },
+                Err(err) => panic!("{err}"),
+            };
+            success
+        };
+
+        //let on_start = move |_| {Self::run_process(cmd)};
+
+
         let server_wait = self.start_server(on_start).await;
         if server_wait.is_none() {
             return GemGuiError::error("Starting server failed");
@@ -550,11 +582,11 @@ impl Gui {
                         Ok(m) => {
                             match m._type.as_str()  {
                                 "keepalive" => {
-                                    println!("keep alive");
+                                    // println!("keep alive");
                                 },
                                 "uiready" => UiData::entered(&self.ui),
                                 "start_request" => self.start_handler(),
-                                "close_request"  => { 
+                                "close_request"  => {  // whaaat CLOSE_REQUEST cannot be used!
                                     self.exit(); // send exit to all windows - then go
                                     break; },  
                                 "event" => self.event_handler(m),

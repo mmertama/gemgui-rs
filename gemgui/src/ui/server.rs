@@ -28,6 +28,7 @@ use crate::JSMessageTx;
 use crate::JSType;
 use crate::ui::BATCH_BEGIN;
 use crate::ui::BATCH_END;
+use crate::ui::CLOSE_REQUEST;
 use crate::ui::utils::get_extension_from_filename;
 use crate::ui_data::ROOT_ID;
 
@@ -78,11 +79,25 @@ impl MsgTx {
 // sends message from element to socket server
 impl MsgTx {
     async fn do_send(tx: BroadcastSender<Message>, msg: String) {
-        tx.send(Message::text(msg)).unwrap_or_else(|e|{eprintln!("Fatal {e}"); 0});
+        tx.send(Message::text(&msg)).unwrap_or_else(|e| {
+            // somewhat heavy error handing only upon error - then we look if 
+            // it was on close_exit and ignore if channels are already closed
+            let obj = serde_json::from_str::<serde_json::Map<String, serde_json::Value>>(&msg);
+            if obj.is_err() 
+            || !obj.as_ref().unwrap().contains_key("type") 
+            || obj.as_ref().unwrap()["type"].to_string() != format!("\"{CLOSE_REQUEST}\"") 
+            || tx.receiver_count() != 0 {  
+                eprintln!("Channel error {e} on {msg} tx count: {}", tx.receiver_count());
+            }
+            0
+        });
     }
     
     async fn do_send_bin(tx: BroadcastSender<Message>, msg: Vec<u8>) {
-        tx.send(Message::binary(msg)).unwrap_or_else(|e|{eprintln!("Fatal {e}"); 0});
+        tx.send(Message::binary(msg)).unwrap_or_else(|e|{
+            eprintln!("Channel error {e}");
+            0
+        });
     }  
 }
 
@@ -216,7 +231,7 @@ impl WSServer {
                                         eprintln!("Closed code:{} std:{}", cf.0, cf.1);
                                     }
                                 }
-                                let close = String::from("{\"type\": \"close_request\"}"); 
+                                let close = format!("{{\"type\": \"{CLOSE_REQUEST}\"}}"); 
                                 subscription_sender.send(close).await.unwrap();
                                 break;  
                             } else if msg.is_ping() {

@@ -507,7 +507,7 @@ impl Element {
     pub async fn rect<T>(&self) -> Result<Rect<T>>
     where T: FromStr + Clone + Copy {
         let result = self.query("bounding_rect", &vec![]).await;
-        let err = |e: &str| Err(GemGuiError::Err(format!("Bad value {e}")));
+        let err = |e: &str| GemGuiError::error(format!("Bad value {e}"));
         match result {
             Ok(value) => {
                 match crate::value_to_string_map(value) {

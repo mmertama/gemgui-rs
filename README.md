@@ -12,6 +12,8 @@ GemGui lets write platform independent UI applications with Rust, and combines p
 
 GemGui itself does not contain an application window. The UI by default uses native system browser. However that is fully configurable per application e.g. to utilize Python webview or browser in kiosk-mode.
 
+The Python webview can be installed using Pip - see [PyPi](https://pypi.org/project/pywebview/0.5/)
+
 GemGui is absolute Rust rewrite of [Gempyre C++ GUI Library](https://github.com/mmertama/Gempyre).
 
 Available at [crates.io](https://crates.io/).

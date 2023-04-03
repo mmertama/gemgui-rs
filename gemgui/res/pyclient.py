@@ -209,8 +209,9 @@ def on_show(window, host, port):
                     await ws.close()
                     return
                 except websockets.ConnectionClosedError as e:
-                    print(f"Connection closed: {ws_uri} due {e}")
-                    destroy_window()
+                    if not window_destroyed:
+                        print(f"Connection closed: {ws_uri} due {e}")
+                        destroy_window()
                     return
 
                 doc = receive.result()

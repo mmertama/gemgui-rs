@@ -217,7 +217,7 @@ pub async fn open_file(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&
         let path = Path::new(&file_name);
         return Ok(path.to_path_buf());
     }
-    Err(GemGuiError::Err("Invalid type".to_string()))
+    GemGuiError::error("Invalid type".to_string())
 }
 
 
@@ -252,7 +252,7 @@ pub async fn open_files(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<
         
         return Ok(paths);
     }
-    Err(GemGuiError::Err("Invalid type".to_string()))
+    GemGuiError::error("Invalid type".to_string())
 }
 
 
@@ -276,7 +276,7 @@ pub async fn open_dir(ui: &UiRef, dir: &Path) -> Result<PathBuf, GemGuiError>  {
         let path = Path::new(&file_name);
         return Ok(path.to_path_buf());
     }
-    Err(GemGuiError::Err("Invalid type".to_string()))
+    GemGuiError::error("Invalid type".to_string())
 }
 
 
@@ -306,7 +306,7 @@ pub async fn save_file(ui: &UiRef, dir: &Path, filters: &[(&str, std::vec::Vec<&
         let path = Path::new(&file_name);
         return Ok(path.to_path_buf());
     }
-    Err(GemGuiError::Err("Invalid type".to_string()))
+    GemGuiError::error("Invalid type".to_string())
 
 }
 
@@ -340,6 +340,6 @@ async fn dialog(ui: &UiRef, dialog_type: DialogType, dialog_params: JSMap) ->  R
                 _ => Ok(DialogValue::FileName(value.as_str().expect("Not a string").to_string()))
             }        
         },
-        Err(e) => Err(GemGuiError::Err(format!("Extension error {e}")))
+        Err(e) => GemGuiError::error(format!("Extension error {e}"))
     } 
 }

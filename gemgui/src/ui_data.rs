@@ -469,7 +469,7 @@ impl UiData {
                 Ok(())                                   
             },
             None => {
-                Err(GemGuiError::Err(format!("Warning timer {id} not found")))
+                GemGuiError::error(format!("Warning timer {id} not found"))
             }
         }
     }

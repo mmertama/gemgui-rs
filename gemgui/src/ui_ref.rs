@@ -51,7 +51,7 @@ impl UiRef {
         if value.is_number() {
             Ok(value.as_f64().unwrap() as f32)
         } else {
-            Err(GemGuiError::Err(format!("Not a number {value}")))
+            GemGuiError::error(format!("Not a number {value}"))
         } 
     }
 
@@ -65,7 +65,7 @@ impl UiRef {
         if value.is_boolean() {
             Ok(value.as_bool().unwrap())
         } else {
-            GemGuiError::error(&format!("Not a bool {value}"))
+            GemGuiError::error(format!("Not a bool {value}"))
         } 
     }
 
@@ -261,7 +261,7 @@ impl UiRef {
 
         match rx.recv().await {
             Some(_) => element,
-            None =>   GemGuiError::error(&format!("Element {id} not constructed"))
+            None =>   GemGuiError::error(format!("Element {id} not constructed"))
         }    
     }
     
@@ -291,7 +291,7 @@ impl UiRef {
 
         match value {
             Ok(v) => Ok(v),
-            Err(e) => Err(GemGuiError::Err(format!("Query error {e}")))
+            Err(e) => GemGuiError::error(format!("Query error {e}"))
         }        
     }
 

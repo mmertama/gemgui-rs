@@ -136,7 +136,7 @@ impl Bitmap {
                 let result = image.as_rgb8();
                 match result {
                     Some(im) => Ok(Self::from_rgb(im)),
-                    None => Err(GemGuiError::Err("Bad image".to_string())),
+                    None => GemGuiError::error("Bad image".to_string()),
                 }
             }
         }
@@ -156,10 +156,10 @@ impl Bitmap {
             Ok(reader) => {
                 match reader.decode() {
                     Ok(image)  => Self::from_image(image),
-                    Err(e) => Err(GemGuiError::Err(format!("Bad format, {e}"))),
+                    Err(e) => GemGuiError::error(format!("Bad format, {e}")),
                 }
             },
-            Err(e) => Err(GemGuiError::Err(format!("Image file not found: {filename}, {e}"))),
+            Err(e) => GemGuiError::error(format!("Image file not found: {filename}, {e}")),
         }
     }
 
@@ -178,10 +178,10 @@ impl Bitmap {
             Ok(reader) => {
                 match reader.decode() {
                     Ok(image)  => Self::from_image(image),
-                    Err(e) => Err(GemGuiError::Err(format!("Bad format, {e}"))),
+                    Err(e) => GemGuiError::error(format!("Bad format, {e}")),
                 }
             },
-            Err(e) =>   Err(GemGuiError::Err(format!("Expected an image format, {e:#?}"))),
+            Err(e) => GemGuiError::error(format!("Expected an image format, {e:#?}")),
         }
     }
 
@@ -387,7 +387,7 @@ impl Bitmap {
         }
         match rgba.save(filename) {
             Ok(_) => Ok(()),
-            Err(e) => Err(GemGuiError::Err(format!("{e}")))
+            Err(e) => GemGuiError::error(format!("{e}"))
         }
     }
 

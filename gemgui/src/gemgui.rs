@@ -23,6 +23,7 @@
 //! 
 //! There are few ways to initiate main
 //! 1) Use [tokio](https://docs.rs/tokio/latest/tokio/attr.main.html) 
+//! 
 //! ```no_run
 //! # use gemgui::GemGuiError;
 //! # use gemgui::Result;
@@ -37,6 +38,7 @@
 //! }
 //!```
 //! 2) Use [application](application)
+//! 
 //! ```no_run
 //! # use gemgui::GemGuiError;
 //! # use gemgui::Result;
@@ -53,6 +55,10 @@
 //! } 
 //!```
 //! 3) [window application](window_application)
+//! 
+//! Window application uses Python webview, it to can be installed using Pip,
+//! see [PyPi](https://pypi.org/project/pywebview/0.5/)
+//! 
 //! ```no_run
 //! # use gemgui::GemGuiError;
 //! # use gemgui::Result;
@@ -460,8 +466,10 @@ impl GemGuiError {
         GemGuiError::Err(err.to_string())
     }
 
-    fn error<T>(err: &str) -> Result<T> {
-        Err(GemGuiError::new(err))
+    fn error<T, Str>(err: Str) -> Result<T>
+    where Str: Into<String> {
+        let err = err.into();
+        Err(GemGuiError::new(&err))
     }
 }
 
