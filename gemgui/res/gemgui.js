@@ -238,13 +238,16 @@ function sendGemGuiEvent(source, eventname, values) {
     return true;
 }
 
+id_inc = 0;
+
 function id(el) {
     assert(el.nodeType === 1, "Shall not get id of non element");
     if(!el.id) {
-        el.id = 'gemgui_' + Math.random().toString(32).substr(2,16);
+        el.id = 'gemgui_' + Math.random().toString(32).substring(2, 2 + 16) + '_' + (++id_inc).toString(32);
     }
     return el.id;
 }
+
 
 function serveQuery(element, query_id, query, query_params) {
     const el = element.length > 0 ? document.getElementById(element) : document.body;

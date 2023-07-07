@@ -721,7 +721,7 @@ pub fn default_error(ui: UiRef, err_msg: String) {
     let json = serde_json::from_str::<HashMap<String, String>>(&err_msg);
     match json {
         Ok(json) => {
-            eprintln!("Error: {}\nElement: {}\nTrace: {}\n", json["error"], json["element"], json["trace"]);
+            eprintln!("Error: {}\nElement: {}\nTrace: {}\n", json["error"], json["element"], json.get("trace").unwrap_or(&"no trace".to_string()));
         },
         _ => eprintln!("{err_msg}")
     }
