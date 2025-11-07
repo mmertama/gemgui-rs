@@ -1,9 +1,9 @@
 
 use futures::stream::SplitSink;
 use warp::Filter;
-use warp::ws::Message;
-use warp::ws::WebSocket;
-use warp::ws::Ws;
+use warp::filters::ws::Message;
+use warp::filters::ws::WebSocket;
+use warp::filters::ws::Ws;
 
 use futures::stream::StreamExt;
 
@@ -330,14 +330,18 @@ impl WSServer {
           let all_routes = ui_route
         .or(get_routes);
      
-        let (_, fut) = warp::serve(all_routes)
-            .bind_with_graceful_shutdown(([127, 0, 0, 1], self.port),  async move {
+        let addr: std::net::SocketAddr = ([127, 0, 0, 1], self.port).into();
+        let server = warp::serve(all_routes)
+            .bind(addr).await;
+
+
+        let fut = server.graceful(async move {
                 tokio::select! {
                     Some(_) = exit_rx.recv() => {}
                 }
             });
 
-        let fut_srv = tokio::spawn(fut);
+        let fut_srv = tokio::spawn(fut.run());
 
         // Start browser Ui after server is spawned
         if ! on_start(self.port).await {

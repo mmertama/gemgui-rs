@@ -5,7 +5,7 @@ use std::process::{Command, Stdio};
 
 
 pub (crate) fn html_file_launch_cmd() -> Option<(String, Vec<String>)> {
-    if cfg!(target_os = "unix") || cfg!(target_os = "linux") {
+    if cfg!(target_os = "linux") || cfg!(target_os = "linux") {
         return Some(("x-www-browser".to_string(), Vec::new()));
     }
     if cfg!(target_os = "macos") {
