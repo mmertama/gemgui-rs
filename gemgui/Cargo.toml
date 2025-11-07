@@ -49,5 +49,3 @@ which = "4.4.0"
 [lib]
 name = "gemgui"
 path = "src/gemgui.rs" 
-
-

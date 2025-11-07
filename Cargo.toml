@@ -15,7 +15,8 @@ members = [
     "examples/mouse_pick",
     "examples/canvas",
     "examples/basic",
-    "examples/dialogs"
+    "examples/dialogs",
+    "examples/hello_app"
 ]
 
 [profile.release]
