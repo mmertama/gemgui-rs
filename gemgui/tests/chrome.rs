@@ -40,6 +40,8 @@ pub fn headless_params(log: bool) -> Vec<String> {
         "--disable-background-networking",
         "--disable-component-update",
         "--disable-update",
+        "--disable-google-updater",
+        "--disable-features=ChromeUpdater",
         "--disable-default-apps",
         "--disable-extensions",
         "--simulate-outdated-no-au='Tue, 31 Dec 2099 23:59:59 GMT'",
