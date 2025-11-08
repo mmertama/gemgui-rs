@@ -91,7 +91,6 @@ function createElement(parent, tag, id) {
     
     if(document.getElementById(id) == null) {
 
-
         const observer = new MutationObserver((mutationList, observer) => {
             for (const mutation of mutationList) {
                 if (mutation.type === "childList") {
@@ -101,8 +100,10 @@ function createElement(parent, tag, id) {
             }
         });
 
-        observer.observe(parent, {childList: true })
+        if (!parent)
+            parent = document.body 
 
+        observer.observe(parent, {childList: true })
 
         const el = document.createElement(tag);
         if(!el) {

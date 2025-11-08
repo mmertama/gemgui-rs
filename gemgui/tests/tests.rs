@@ -28,6 +28,7 @@ pub (crate) fn setup () -> gemgui::ui::Gui {
         let port = 30000u16;
         chrome::kill_headless();
         while !gemgui::wait_free_port(port, Duration::from_secs(2)) {
+            println!("Port occupied! killing chrome");
             chrome::kill_headless();
         }
         if ! chrome::kill_headless() {
@@ -38,6 +39,9 @@ pub (crate) fn setup () -> gemgui::ui::Gui {
         if chrome.is_some() {
             let (cmd, cmd_params) = chrome.unwrap();
             let mut params = cmd_params.clone();
+            params.extend([
+                "--disable-logging".into(),
+                "--log-level=3".into()]);
             let mut chrome_params = chrome::headless_params(false);
             params.append(&mut chrome_params);
             params.push(ui.address());

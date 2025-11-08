@@ -155,7 +155,7 @@ async fn test_timer_id() {
         ui.exit();
      });
     ui.run().await.unwrap();
-    unsafe {assert_eq!(ttid, TID, "we are testing addition with {} and {}", ttid, TID)};
+    unsafe {assert_eq!(ttid, std::ptr::read(&raw const TID), "we are testing addition with {} and {}", ttid, std::ptr::read(&raw const TID))};
 }
 
 
@@ -169,7 +169,7 @@ async fn test_timer_id_async() {
         ui.exit();
      }); // << -- boxed!
     ui.run().await.unwrap();
-    unsafe {assert_eq!(ttid, TID,"we are testing addition with {} and {}", ttid, TID)};
+    unsafe {assert_eq!(ttid, std::ptr::read(&raw const TID), "we are testing addition with {} and {}", ttid, std::ptr::read(&raw const TID))};
 }
 
 #[tokio::test]
@@ -189,7 +189,7 @@ async fn test_counter() {
     let start = Instant::now(); 
     ui.run().await.unwrap();
     let duration = start.elapsed();
-    unsafe{assert_eq!(COUNTER, 100)};
+    unsafe{assert_eq!(std::ptr::read(&raw const COUNTER), 100)};
     assert!(duration >= Duration::from_millis(500), "duration expected be at least 500ms, it is {}ms", duration.as_millis());
 }
 
@@ -306,7 +306,7 @@ async fn test_periodic_cancel_other() {
     let ttid = ui.periodic(Duration::from_millis(1), move |_, _| { 
         unsafe {
             COUNTER += 1;
-            assert!(COUNTER <= 15, "Wrong timer - {} >= 15 - too much off", &COUNTER);
+            assert!(COUNTER <= 15, "Wrong timer - {} >= 15 - too much off", std::ptr::read(&raw const COUNTER));
         }
      });
      ui.after(Duration::from_millis(9), move |ui, _| { 
@@ -742,7 +742,10 @@ async fn test_batch() {
         
     });
     ui.run().await.unwrap();
-    unsafe{assert!(VISITS == 3, "{VISITS} != 3")};
+    
+    unsafe{
+        let v = std::ptr::read(&raw const VISITS);
+        assert!(v == 3, "{v} != 3")};
     unsafe{assert!(BATCHED)};
     unsafe{assert!(VISITED)}
 }
@@ -767,7 +770,7 @@ async fn add_element_async() {
     ui.on_start_async(move |ui| async move {
         let el = ui.add_element_async("P", &ui.root()).await.unwrap();
         assert!(ui.exists(el.id()).await.unwrap());
-        let id = el.id().clone();
+        let id = el.id();
         assert!(id != "");
         assert_eq!(ui.element(&id).element_type().await.unwrap(), "p");    
         ui.exit();
@@ -781,7 +784,7 @@ async fn add_element() {
     let mut ui = setup();
     ui.on_start_async(move |ui| async move {
         ui.add_element("P", &ui.root(), |ui: UiRef, el: Element| {
-            let id = el.id().clone();
+            let id = el.id();
             assert!(id != "");
             ui.exit();
         }).unwrap();

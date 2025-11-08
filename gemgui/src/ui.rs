@@ -473,7 +473,7 @@ impl Gui {
     /// `width` - window width
     /// `height` - window height
     /// `python_parameters` - parameters passed to pywebview e.g "{"debug", true}"
-    /// `flags` - See [py_ui_flags](py_ui_flags)
+    /// `flags` - See [py_ui_flags]
     pub fn set_python_gui<OptionalMenu>(&mut self,
         title: &str,
         width:u32,

@@ -427,7 +427,7 @@ impl BitmapRef<'_> {
     /// `height` - bitmap height.
     /// 
     /// `bytes` - bytes that are borrowed for a bitmap.
-    pub fn from_bytes(width: u32, height: u32, bytes: &Bytes) -> BitmapRef {
+    pub fn from_bytes<'a>(width: u32, height: u32, bytes: &'a Bytes) -> BitmapRef<'a>{
         assert!(width < BITMAP_MAX && height < BITMAP_MAX);
         assert!(width * height == bytes.len() as u32);
         BitmapRef {

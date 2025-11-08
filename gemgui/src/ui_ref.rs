@@ -209,7 +209,7 @@ impl UiRef {
     where
     CB: FnMut(UiRef, Element) + Clone + Send + 'static,
     OptCB: Into<Option<CB>>  {
-        eprintln!("Element {} to crete", &id);
+        eprintln!("Element {} to create", &id);
         let result = self.create_element(id, html_element, parent);
         eprintln!("Element {} maybe created", &id);
         match result {

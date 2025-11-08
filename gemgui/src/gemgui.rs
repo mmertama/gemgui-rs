@@ -37,7 +37,7 @@
 //!    ui.run().await
 //! }
 //!```
-//! 2) Use [application](application)
+//! 2) Use [application]
 //! 
 //! ```no_run
 //! # use gemgui::GemGuiError;
@@ -487,10 +487,12 @@ impl GemGuiError {
 pub fn filemap_from_dir<DirName>(path: DirName) -> std::io::Result<Filemap>
  where DirName: AsRef<Path>{
     let dirname = path.as_ref().to_str().unwrap();
-    let dir = std::fs::read_dir(dirname).unwrap_or_else(|e| panic!("Cannot read {}/{}: {}",
-    std::env::current_dir().unwrap().to_str().unwrap(), dirname, e));
+    let dir = std::fs::read_dir(dirname);
+    if dir.is_err() {
+        return Err(std::io::Error::last_os_error());
+    }
     let mut filemap = Filemap::new();
-    for entry in dir {
+    for entry in dir.unwrap() {
         let file = entry?;
         if file.file_type()?.is_file() {
             let contents = std::fs::read(file.path())?;

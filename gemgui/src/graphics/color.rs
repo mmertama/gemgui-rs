@@ -64,7 +64,7 @@ pub fn style_to_name(rgb_string: &str) -> Option<String> {
 /// 
 /// Color name
 pub fn pixel_to_name(pixel: Pixel) -> Option<String> {
-    let value = color_name::Color::name([
+    let value = color_name::css::Color::name([
         r(pixel),
         g(pixel),
         b(pixel)]);
@@ -84,7 +84,7 @@ pub fn pixel_to_name(pixel: Pixel) -> Option<String> {
 /// Pixel
 pub fn name_to_rgb(name: &str) -> Option<Pixel> {
     let s = name.into();
-    match color_name::Color::val().by_string(s) {
+    match color_name::css::Color::val().by_string(s) {
         Ok(c) => Some(rgb(c[0], c[1], c[2])),
         Err(_) => None,
     }

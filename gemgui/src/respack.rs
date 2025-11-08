@@ -68,7 +68,7 @@ fn minify(name : &str, data : &[u8]) -> Vec<u8> {
 /// ...and apply build.rs 
 /// 'gui' refers to directory the resources all locate. All files in the directory
 /// are read in resources.
-/// ```no_run
+/// ```ignore
 ///  # #[cfg(never)] mod foo {
 /// fn main() {
 ///     println!("cargo:rerun-if-changed=gui");
@@ -77,13 +77,13 @@ fn minify(name : &str, data : &[u8]) -> Vec<u8> {
 /// # }
 /// ```
 /// Then resources can be read in sources as
-/// ```no_run
+/// ```ignore
 /// # #[cfg(never)] mod foo {
 /// include!(concat!(env!("OUT_DIR"), "/generated.rs"));
 /// # }
 /// ```
 /// ...and read in for the Ui as  
-/// ```no_run
+/// ```ignore
 /// # #[cfg(never)] mod foo {
 /// # fn bar() {
 /// let fm = gemgui::filemap_from(RESOURCES);
